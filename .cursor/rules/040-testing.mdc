@@ -1,0 +1,34 @@
+---
+alwaysApply: true
+---
+---
+description: Testing strategy for Rust correctness, C++ parity, and JavaScript integration
+globs:
+  - "rust/**/*.rs"
+  - "js/**/*.js"
+  - "js/**/*.mjs"
+  - "js/**/*.cjs"
+  - "test/**/*"
+  - "tests/**/*"
+alwaysApply: false
+---
+
+# Testing Rules
+
+## Required test layers
+
+- Rust unit tests for low-level correctness.
+- Parity tests or vector-based tests for crypto logic when possible.
+- JavaScript integration tests covering npm-facing APIs and WASM initialization behavior.
+
+## Test priorities
+
+- When changing crypto code, prioritize correctness tests first.
+- When changing wrappers or exports, add or update JS integration tests.
+- If a result is uncertain, do not guess; verify against the C++11 reference or known-good vectors.
+
+## Scope
+
+- Test both expected behavior and edge cases.
+- Include tests for initialization, invalid inputs, and public API error handling.
+- Prefer deterministic fixtures and reference vectors where possible.

@@ -1,0 +1,52 @@
+---
+alwaysApply: true
+---
+---
+description: Rust rules for crypto engine, C++11 porting discipline, formatting, linting, and documentation
+globs:
+  - "rust/**/*.rs"
+  - "**/*.rs"
+alwaysApply: false
+---
+
+# Rust Engine Rules
+
+## General
+
+- Use idiomatic stable Rust.
+- Write production-grade code only.
+- Prefer explicit, audit-friendly code over clever abstractions.
+- Keep changes focused and reviewable.
+
+## Porting from C++11
+
+- Treat the original C++11 codebase as the behavioral reference.
+- Preserve algorithmic behavior first, then improve structure only when safe.
+- Keep naming and concepts recognizable when that helps parity review.
+- If behavior differs from the reference, call it out explicitly.
+
+## Crypto and performance
+
+- Rust is the preferred implementation for hot crypto paths such as ge_scalar and related complex routines.
+- Do not rewrite proven low-level math into speculative abstractions.
+- Preserve constant-time intent where applicable.
+- Avoid hidden allocations, unnecessary copies, and behavior-changing refactors in critical paths.
+
+## Error handling and safety
+
+- Prefer Result-based errors over panic in library code.
+- Avoid unwrap and expect in production paths unless the failure is provably unrecoverable and documented.
+- Keep unsafe to an absolute minimum.
+- If unsafe is required, add a brief safety comment documenting the invariant.
+
+## Required tooling
+
+- Run `cargo fmt --all`.
+- Run `cargo clippy --all-targets --all-features -- -D warnings`.
+- Do not silence clippy warnings as a shortcut.
+
+## Rust docs
+
+- Use `///` for public items.
+- Use `//!` for module-level and crate-level docs.
+- Document public APIs, invariants, edge cases, safety notes, and porting rationale.

@@ -1,0 +1,40 @@
+---
+alwaysApply: true
+---
+---
+description: WASM boundary rules for wasm-bindgen, wasm-pack output, and efficient JS/WASM interop
+globs:
+  - "rust/**/*.rs"
+  - "js/**/*.js"
+  - "js/**/*.mjs"
+  - "js/**/*.cjs"
+  - "js/wasm/**/*"
+alwaysApply: false
+---
+
+# WASM Interop Rules
+
+## Interop model
+
+- Use `wasm-bindgen` for Rust and JavaScript interop.
+- Use `wasm-pack` or an equivalent npm-oriented build flow for publishable artifacts.
+- Keep the JS <-> WASM boundary narrow, explicit, and coarse-grained.
+- Prefer fewer larger calls over many tiny boundary crossings.
+
+## Export design
+
+- Export JS-friendly interfaces from Rust.
+- Do not expose accidental internal Rust details or raw generated glue as the main API.
+- Keep exported WASM functions focused on computational work.
+
+## Performance rules
+
+- Minimize copies, allocations, and serialization across the boundary.
+- Prefer simple types across the boundary when practical.
+- Be careful with buffers and repeated conversion work in hot paths.
+
+## Ownership rules
+
+- Rust owns heavy cryptographic computation.
+- JS owns module loading, initialization flow, validation, and convenience wrappers.
+- Do not move JS responsibilities into Rust without a clear reason.

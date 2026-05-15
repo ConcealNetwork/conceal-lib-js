@@ -1,0 +1,39 @@
+---
+alwaysApply: true
+---
+---
+description: Hybrid npm package architecture for Rust/WASM crypto engine with JavaScript public API
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# Architecture Rules
+
+This repository produces a publishable npm module.
+
+## Required layers
+
+- Rust/WASM is the core crypto engine for performance-critical and correctness-critical code.
+- JavaScript is the public API layer for npm consumers.
+- README and package docs are required parts of the product, not optional extras.
+- Tests must cover both Rust correctness and JavaScript-facing integration behavior.
+
+## Responsibilities
+
+- Keep heavy crypto and complex scalar / group operations in Rust.
+- Keep initialization, environment handling, validation, wrappers, and package ergonomics in JavaScript.
+- Do not expose raw WASM glue as the primary user-facing API unless explicitly requested.
+- Preserve the layered design: engine in Rust, consumer surface in JS.
+
+## Porting policy
+
+- The Rust implementation is based on a known working C++11 repository.
+- Preserve semantic equivalence with the C++11 reference unless explicitly instructed otherwise.
+- Correctness and parity come before refactoring elegance.
+
+## Package mindset
+
+- Every change should be evaluated as part of a real npm library.
+- Prefer stable, explicit, well-documented exports.
+- Avoid leaking Rust internals into the JS-facing package API.

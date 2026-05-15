@@ -1,0 +1,41 @@
+---
+alwaysApply: true
+---
+---
+description: JavaScript rules for npm-facing API, wrappers, initialization, and package ergonomics
+globs:
+  - "js/**/*.js"
+  - "js/**/*.mjs"
+  - "js/**/*.cjs"
+  - "js/index.js"
+  - "package.json"
+alwaysApply: false
+---
+
+# JavaScript API Rules
+
+## Public package design
+
+- JavaScript is the main interface exposed to npm consumers.
+- Design the package to feel like a polished JS library powered by Rust/WASM internally.
+- Keep the public API small, explicit, stable, and well documented.
+- Prefer JS-friendly names, parameter shapes, return values, and error behavior.
+
+## JS responsibilities
+
+- Handle package entrypoints, initialization, environment detection, validation, wrappers, and convenience helpers in JavaScript.
+- Use JS when it improves developer experience, startup simplicity, maintainability, or non-hot-path efficiency.
+- Do not duplicate heavy crypto logic in JS when Rust/WASM is the intended optimized path.
+
+## Export policy
+
+- Keep imports and exports predictable.
+- Avoid exposing raw generated `pkg` internals as the recommended user API.
+- Treat API changes as package design changes, not just implementation details.
+- Do not introduce breaking API changes without explicitly noting them.
+
+## Style
+
+- Use modern, professional JavaScript.
+- Prefer small modules and straightforward logic.
+- Keep the npm consumer experience cleaner than the internal implementation details.

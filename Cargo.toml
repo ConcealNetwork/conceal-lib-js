@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "mnemonic",
-    "cypher",
-    "crypto",
+    "rust/mnemonic",
+    "rust/crypto",
+    "rust/cypher",
 ]
