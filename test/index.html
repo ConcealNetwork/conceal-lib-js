@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>concealjs — WASM tests</title>
+  <style>
+    body {
+      font-family: monospace;
+      max-width: 860px;
+      margin: 2rem auto;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 1rem 2rem;
+    }
+    h1 { color: #00d4aa; margin-bottom: 0.2rem; }
+    h2 { color: #888; font-size: 0.9rem; margin-top: 0; }
+    section { margin: 1.5rem 0; }
+    h3 {
+      color: #00d4aa;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.3rem;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+    }
+    p { margin: 0.25rem 0; font-size: 0.95rem; }
+    .pass { color: #4caf80; }
+    .fail { color: #f44336; }
+  </style>
+</head>
+<body>
+  <h1>concealjs</h1>
+  <h2>WASM test suite — open DevTools console for detail</h2>
+  <div id="results"><em>Running…</em></div>
+  <script type="module" src="./test-all.js"></script>
+</body>
+</html>

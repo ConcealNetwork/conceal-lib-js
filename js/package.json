@@ -1,0 +1,20 @@
+{
+  "name": "concealjs",
+  "version": "0.1.0",
+  "description": "Conceal Network webwallet cryptographic primitives compiled to WebAssembly",
+  "author": "Conceal Devs",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "wasm/"
+  ],
+  "scripts": {
+    "build:mnemonic": "cd ../mnemonic && wasm-pack build --target bundler --out-dir ../js/wasm/mnemonic",
+    "build": "npm run build:mnemonic"
+  },
+  "keywords": ["conceal", "wasm", "mnemonic", "webwallet", "cryptocurrency"],
+  "license": "MIT"
+}
