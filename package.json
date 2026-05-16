@@ -17,7 +17,7 @@
     "release": "npm run build && npm run types && npm pack"
   },
   "devDependencies": {
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   },
   "keywords": ["conceal", "wasm", "mnemonic", "webwallet", "cryptocurrency"],
   "license": "MIT"
