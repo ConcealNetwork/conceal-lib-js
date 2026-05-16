@@ -89,6 +89,21 @@ var crc32 = (function () {
 
 var mn_default_wordset = 'english';
 
+/**
+ * Resolve a mnemonic word to its list index.
+ * Full-word match first (export phrases use full words), then prefix match.
+ * @param {string} word
+ * @param {{ words: string[], trunc_words: string[], prefix_len: number }} wordset
+ * @returns {number}
+ */
+function mn_find_word_index(word, wordset) {
+    var full = wordset.words.indexOf(word);
+    if (full !== -1) {
+        return full;
+    }
+    return wordset.trunc_words.indexOf(word.slice(0, wordset.prefix_len));
+}
+
 function mn_get_checksum_index(words, prefix_len) {
     var trimmed_words = "";
     for (var i = 0; i < words.length; i++) {
@@ -108,7 +123,7 @@ function mn_get_checksum_index(words, prefix_len) {
  * or 24 words for Electrum.
  *
  * @param {string} str - 64-character lowercase hex string (32-byte private key).
- * @param {'english' | 'electrum' | 'japanese'} [wordset_name='english'] - Wordset to use.
+ * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} Space-separated mnemonic phrase.
  * @throws {string} If the wordset is unknown or the input length is invalid.
  */
@@ -149,7 +164,7 @@ function mn_swap_endian_4byte(str) {
  * full words are accepted and compared by prefix.
  *
  * @param {string} str - Space-separated mnemonic phrase (25 words for English).
- * @param {'english' | 'electrum' | 'japanese'} [wordset_name='english'] - Wordset to use.
+ * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} 64-character lowercase hex string (32-byte private key).
  * @throws {string} If too few words are given, a word is unrecognised,
  *   or the checksum word does not match.
@@ -178,9 +193,9 @@ function mn_decode(str, wordset_name) {
             w2 = wordset.words.indexOf(wlist[i + 1]);
             w3 = wordset.words.indexOf(wlist[i + 2]);
         } else {
-            w1 = wordset.trunc_words.indexOf(wlist[i].slice(0, wordset.prefix_len));
-            w2 = wordset.trunc_words.indexOf(wlist[i + 1].slice(0, wordset.prefix_len));
-            w3 = wordset.trunc_words.indexOf(wlist[i + 2].slice(0, wordset.prefix_len));
+            w1 = mn_find_word_index(wlist[i], wordset);
+            w2 = mn_find_word_index(wlist[i + 1], wordset);
+            w3 = mn_find_word_index(wlist[i + 2], wordset);
         }
         if (w1 === -1 || w2 === -1 || w3 === -1) {
             throw "invalid word in mnemonic";

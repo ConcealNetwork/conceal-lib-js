@@ -49,6 +49,9 @@ fn take_chars(s: &str, n: usize) -> &str {
 fn find_word_index(word: &str, wl: &WordList) -> Option<u32> {
     if wl.prefix_len == 0 {
         wl.words.iter().position(|&w| w == word).map(|i| i as u32)
+    } else if let Some(i) = wl.words.iter().position(|&w| w == word) {
+        // Full-word match first (encoded phrases use full words).
+        Some(i as u32)
     } else {
         let p = take_chars(word, wl.prefix_len);
         wl.words
@@ -163,7 +166,7 @@ pub fn mnemonic_to_private_key(mnemonic: &str, wl: &WordList) -> Result<Vec<u8>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::wordlist::ENGLISH_WL;
+    use crate::wordlist::{ENGLISH_WL, PORTUGUESE_WL};
 
     #[test]
     fn roundtrip_english() {
@@ -178,6 +181,19 @@ mod tests {
         let key: Vec<u8> = (0u8..32).collect();
         let mnemonic = private_key_to_mnemonic(&key, &ENGLISH_WL).unwrap();
         let recovered = mnemonic_to_private_key(&mnemonic, &ENGLISH_WL).unwrap();
+        assert_eq!(key, recovered);
+    }
+
+    #[test]
+    fn roundtrip_portuguese_nonzero() {
+        let key: Vec<u8> = vec![
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+            0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+            0x1c, 0x1d, 0x1e, 0x1f,
+        ];
+        let mnemonic = private_key_to_mnemonic(&key, &PORTUGUESE_WL).unwrap();
+        assert_eq!(mnemonic.split_whitespace().count(), 25);
+        let recovered = mnemonic_to_private_key(&mnemonic, &PORTUGUESE_WL).unwrap();
         assert_eq!(key, recovered);
     }
 

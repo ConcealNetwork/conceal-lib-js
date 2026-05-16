@@ -4944,7 +4944,6 @@ pub const SPANISH: &[&str] = &[
     "rito",
 ];
 
-/// Portuguese word list — fill in 1626 entries.
 pub const PORTUGUESE: &[&str] = &[
     "abaular",
     "abdominal",

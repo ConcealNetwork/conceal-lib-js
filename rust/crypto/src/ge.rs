@@ -87,6 +87,22 @@ mod tests {
         assert_ne!(result, [0u8; 32]);
     }
 
+    /// 32 zero bytes compress a valid Edwards point; off-curve encodings must fail.
+    const INVALID_COMPRESSED: [u8; 32] = [
+        0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+    ];
+
+    #[test]
+    fn frombytes_rejects_invalid_compressed() {
+        assert!(ge_frombytes_bytes(&INVALID_COMPRESSED).is_err());
+    }
+
+    #[test]
+    fn frombytes_accepts_all_zero_encoding() {
+        assert!(ge_frombytes_bytes(&[0u8; 32]).is_ok());
+    }
+
     #[test]
     fn add_then_double() {
         let mut scalar = [0u8; 32];

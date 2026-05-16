@@ -1,7 +1,11 @@
+import { runCryptoTests } from "./test-crypto.js";
+import { runCypherTests } from "./test-cypher.js";
 import { runMnemonicTests } from "./test-mnemonic.js";
 
 const SUITES = [
   { name: "mnemonic", run: runMnemonicTests },
+  { name: "crypto", run: runCryptoTests },
+  { name: "cypher", run: runCypherTests },
 ];
 
 async function runAll() {

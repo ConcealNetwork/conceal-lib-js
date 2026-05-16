@@ -27,6 +27,35 @@ mod utils;
 use utils::{bytes_to_hex, hex_to_bytes, hex_to_bytes32};
 use wasm_bindgen::prelude::*;
 
+/// Plain JS object `{ sec, pub }` for `generate_keys` / nested key pairs.
+#[derive(serde::Serialize)]
+struct KeyPairJs {
+    sec: String,
+    #[serde(rename = "pub")]
+    pub_key: String,
+}
+
+/// Plain JS object for `create_address`.
+#[derive(serde::Serialize)]
+struct AddressJs {
+    spend: KeyPairJs,
+    view: KeyPairJs,
+    public_addr: String,
+}
+
+/// Plain JS object for `decode_address`.
+#[derive(serde::Serialize)]
+struct DecodedAddressJs {
+    spend: String,
+    view: String,
+    #[serde(rename = "intPaymentId")]
+    int_payment_id: Option<()>,
+}
+
+fn to_js_value<T: serde::Serialize>(value: &T) -> Result<JsValue, JsValue> {
+    serde_wasm_bindgen::to_value(value).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
 // ---------------------------------------------------------------------------
 // Hash
 // ---------------------------------------------------------------------------
@@ -172,12 +201,10 @@ pub fn ge_frombytes_vartime(point_hex: &str) -> Result<String, JsValue> {
 pub fn generate_keys(seed_hex: &str) -> Result<JsValue, JsValue> {
     let seed = hex_to_bytes32(seed_hex).map_err(|e| JsValue::from_str(&e))?;
     let (sec, pub_key) = keys::generate_keys_bytes(&seed);
-    let kp = serde_wasm_bindgen::to_value(&serde_json::json!({
-        "sec": bytes_to_hex(&sec),
-        "pub": bytes_to_hex(&pub_key),
-    }))
-    .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    Ok(kp)
+    to_js_value(&KeyPairJs {
+        sec: bytes_to_hex(&sec),
+        pub_key: bytes_to_hex(&pub_key),
+    })
 }
 
 /// generate_key_derivation: 8 × (sec_scalar × pub_point).
@@ -223,19 +250,17 @@ pub fn create_address(seed_hex: &str) -> Result<JsValue, JsValue> {
     let seed = hex_to_bytes32(seed_hex).map_err(|e| JsValue::from_str(&e))?;
     let (spend_sec, spend_pub, view_sec, view_pub, public_addr) =
         address::create_address_from_seed(&seed);
-    let obj = serde_wasm_bindgen::to_value(&serde_json::json!({
-        "spend": {
-            "sec": bytes_to_hex(&spend_sec),
-            "pub": bytes_to_hex(&spend_pub),
+    to_js_value(&AddressJs {
+        spend: KeyPairJs {
+            sec: bytes_to_hex(&spend_sec),
+            pub_key: bytes_to_hex(&spend_pub),
         },
-        "view": {
-            "sec": bytes_to_hex(&view_sec),
-            "pub": bytes_to_hex(&view_pub),
+        view: KeyPairJs {
+            sec: bytes_to_hex(&view_sec),
+            pub_key: bytes_to_hex(&view_pub),
         },
-        "public_addr": public_addr,
-    }))
-    .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    Ok(obj)
+        public_addr,
+    })
 }
 
 /// decode_address: validate and extract spend/view public keys from an address string.
@@ -245,11 +270,9 @@ pub fn create_address(seed_hex: &str) -> Result<JsValue, JsValue> {
 pub fn decode_address(address: &str) -> Result<JsValue, JsValue> {
     let (spend, view) =
         address::decode_address_str(address).map_err(|e| JsValue::from_str(&e))?;
-    let obj = serde_wasm_bindgen::to_value(&serde_json::json!({
-        "spend": bytes_to_hex(&spend),
-        "view": bytes_to_hex(&view),
-        "intPaymentId": null,
-    }))
-    .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    Ok(obj)
+    to_js_value(&DecodedAddressJs {
+        spend: bytes_to_hex(&spend),
+        view: bytes_to_hex(&view),
+        int_payment_id: None,
+    })
 }

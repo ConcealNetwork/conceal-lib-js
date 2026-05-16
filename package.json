@@ -10,15 +10,29 @@
     "src/"
   ],
   "scripts": {
-    "build:crypto":   "cd rust/crypto   && wasm-pack build --target bundler --out-dir ../../src/wasm/crypto",
-    "build:cypher":   "cd rust/cypher   && wasm-pack build --target bundler --out-dir ../../src/wasm/cypher",
+    "build:crypto": "cd rust/crypto   && wasm-pack build --target bundler --out-dir ../../src/wasm/crypto",
+    "build:cypher": "cd rust/cypher   && wasm-pack build --target bundler --out-dir ../../src/wasm/cypher",
     "build": "npm run build:crypto && npm run build:cypher",
+    "build:test:crypto": "cd rust/crypto   && wasm-pack build --target web --out-dir ../../test/wasm/crypto",
+    "build:test:cypher": "cd rust/cypher   && wasm-pack build --target web --out-dir ../../test/wasm/cypher",
+    "build:test": "npm run build:test:crypto && npm run build:test:cypher",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "format": "biome format .",
+    "format:fix": "biome format . --write",
     "types": "tsc -p tsconfig.types.json",
     "release": "npm run build && npm run types && npm pack"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.15",
     "typescript": "^6.0.3"
   },
-  "keywords": ["conceal", "wasm", "mnemonic", "webwallet", "cryptocurrency"],
+  "keywords": [
+    "conceal",
+    "wasm",
+    "mnemonic",
+    "webwallet",
+    "cryptocurrency"
+  ],
   "license": "MIT"
 }
