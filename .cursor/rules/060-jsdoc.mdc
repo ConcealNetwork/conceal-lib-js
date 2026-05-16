@@ -1,0 +1,140 @@
+---
+alwaysApply: true
+---
+
+---
+description: JSDoc: require TypeScript-friendly JSDoc on public JavaScript APIs and keep declarations in sync
+globs: js/**/*.js, js/**/*.mjs, js/**/*.cjs, js/index.js, package.json, README.md
+alwaysApply: false
+---
+
+# JSDoc Rules
+
+## Purpose
+
+This package is implemented in JavaScript at runtime but must be fully usable by TypeScript consumers.
+Public JavaScript APIs must be documented with JSDoc in a way that supports generation of accurate `.d.ts` declaration files.
+
+## Core policy
+
+- Treat JSDoc as part of the public API contract.
+- Every public export in JavaScript must have complete, TypeScript-friendly JSDoc.
+- Keep runtime JavaScript simple and idiomatic, but make types explicit through JSDoc.
+- When a public API changes, update the JSDoc immediately.
+- Do not let JSDoc drift from actual runtime behavior.
+
+## What requires JSDoc
+
+Add JSDoc for:
+
+- All public exported functions.
+- All public classes.
+- All public methods.
+- All public typedefs, callback types, and structured option/result objects.
+- Any exported constant whose type is not completely obvious.
+- Any function wrapping WASM behavior where inputs, outputs, or failure modes are important.
+
+JSDoc is optional for small private helpers unless the logic is tricky enough to justify it.
+
+## Minimum requirements for public functions
+
+Every public function should document:
+
+- What it does.
+- Parameter names and types with `@param`.
+- Return type with `@returns`.
+- Thrown errors or failure conditions when relevant.
+- Async behavior when relevant.
+- Important invariants, encoding assumptions, buffer expectations, or crypto-sensitive constraints.
+
+## Type style
+
+- Prefer explicit JSDoc types over vague prose.
+- Prefer `@typedef` for reusable object shapes.
+- Prefer named callback typedefs instead of repeating complex function signatures.
+- Prefer precise unions and literal types when useful.
+- Avoid `*`, `Object`, and overly broad `any`-like typing unless unavoidable.
+- Keep names aligned with the actual JS API, not internal Rust naming.
+
+## WASM wrapper guidance
+
+For functions that wrap Rust/WASM exports:
+
+- Document the JS-facing contract, not the raw internal WASM mechanics.
+- Explain expected input formats clearly, such as `Uint8Array`, hex string, plain string, or options object.
+- Document return shape and error behavior clearly.
+- Mention sync vs async initialization expectations where relevant.
+
+## Examples
+
+Preferred function documentation style:
+
+```js
+/**
+ * Computes a scalar-related cryptographic operation using the WASM core.
+ *
+ * @param {Uint8Array} scalar - Canonical scalar bytes.
+ * @param {Uint8Array} point - Encoded curve point bytes.
+ * @returns {Uint8Array} Resulting encoded point.
+ * @throws {TypeError} If inputs are not byte arrays of the expected length.
+ */
+export function geScalar(scalar, point) {
+  // ...
+}
+```
+
+Preferred typedef style:
+
+```js
+/**
+ * @typedef {Object} InitOptions
+ * @property {boolean} [sync] - Use synchronous initialization when supported.
+ * @property {string | URL} [wasmUrl] - Optional custom location of the WASM binary.
+ */
+```
+
+Preferred result object style:
+
+```js
+/**
+ * @typedef {Object} KeyPair
+ * @property {Uint8Array} publicKey
+ * @property {Uint8Array} secretKey
+ */
+```
+
+## Declaration generation policy
+
+- The package should be able to generate `.d.ts` files from JavaScript source using TypeScript.
+- Prefer a dedicated declaration build config if needed.
+- Keep JSDoc compatible with declaration generation.
+- If generated declarations become inaccurate or incomplete, fix the JSDoc or API shape instead of ignoring the issue.
+
+Typical TypeScript compiler settings for declaration generation include:
+
+- `allowJs: true`
+- `declaration: true`
+- `emitDeclarationOnly: true`
+
+## Package integration
+
+- Ensure `package.json` points to the generated declaration entry using `types`.
+- If `exports` is used, include the declaration path there as well when appropriate.
+- Public examples in the README should match the documented JSDoc API.
+
+## Change policy
+
+When editing public JS exports:
+
+- Update JSDoc in the same change.
+- Keep examples and docs aligned.
+- Consider whether the generated `.d.ts` output changes.
+- Treat missing or outdated JSDoc on public APIs as a correctness issue, not just a documentation issue.
+
+## Anti-patterns
+
+- Do not export public JS APIs without JSDoc.
+- Do not use vague types when the API contract is known.
+- Do not document internal Rust concepts instead of the JS-facing contract.
+- Do not leave wrapper functions undocumented just because the logic is delegated to WASM.
+- Do not handwave buffer formats, lengths, or error behavior in crypto-sensitive APIs.

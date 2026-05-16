@@ -1,0 +1,48 @@
+name: Audit
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: rustfmt + clippy (check.sh)
+        run: bash check.sh all
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dev dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript type check
+        run: npx tsc -p tsconfig.types.json --noEmit
+
+      - name: npm audit
+        run: npm audit --audit-level=moderate
