@@ -15,18 +15,20 @@
  * - **`cypher`** — ChaCha8 and ChaCha12 stream ciphers (32-byte key,
  *   12-byte nonce).  Compiled from Rust to WASM.
  *
+ * ## Runtimes
+ *
+ * - **Node / Vite / Webpack** — import from `"concealjs"` (this file). WASM is bundled;
+ *   `crypto` / `cypher` work immediately after import.
+ * - **Browser without a bundler** — resolves to `src/browser.js` via the `"browser"`
+ *   field; call `await init()` once before `crypto` / `cypher`. See `concealjs/browser`.
+ *
  * @example
  * ```js
  * import { mnemonic, crypto, cypher } from "concealjs";
  *
- * // Generate a random seed and encode it as a mnemonic
  * const seed = mnemonic.mn_random(256);
  * const phrase = mnemonic.mn_encode(seed);
- * const recovered = mnemonic.mn_decode(phrase);
- *
- * // Derive a wallet address
- * const wallet = await crypto.create_address(seed);
- * console.log(wallet.public_addr);
+ * const wallet = crypto.create_address(seed);
  * ```
  */
 

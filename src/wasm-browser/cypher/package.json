@@ -1,0 +1,15 @@
+{
+  "name": "cypher",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "cypher_bg.wasm",
+    "cypher.js",
+    "cypher.d.ts"
+  ],
+  "main": "cypher.js",
+  "types": "cypher.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

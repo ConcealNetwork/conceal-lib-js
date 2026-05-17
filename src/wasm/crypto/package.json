@@ -1,0 +1,17 @@
+{
+  "name": "crypto",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "crypto_bg.wasm",
+    "crypto.js",
+    "crypto_bg.js",
+    "crypto.d.ts"
+  ],
+  "main": "crypto.js",
+  "types": "crypto.d.ts",
+  "sideEffects": [
+    "./crypto.js",
+    "./snippets/*"
+  ]
+}

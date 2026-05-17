@@ -1,18 +1,42 @@
 {
   "name": "concealjs",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Conceal Network cryptographic primitives — hybrid library routing calls to Rust/WASM or native JavaScript depending on the operation",
   "author": "Conceal Devs",
   "type": "module",
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
+  "main": "./src/index.js",
+  "browser": "./src/browser.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "browser": "./src/browser.js",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
+    "./browser": {
+      "types": "./src/browser.d.ts",
+      "import": "./src/browser.js",
+      "default": "./src/browser.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
-    "src/"
+    "bin/",
+    "scripts/",
+    "src/**/*.js",
+    "src/**/*.d.ts",
+    "src/**/*.wasm",
+    "src/**/package.json"
   ],
+  "prepack": "npm run build && npm run types",
   "scripts": {
-    "build:crypto": "cd rust/crypto   && wasm-pack build --target bundler --out-dir ../../src/wasm/crypto",
-    "build:cypher": "cd rust/cypher   && wasm-pack build --target bundler --out-dir ../../src/wasm/cypher",
-    "build": "npm run build:crypto && npm run build:cypher",
+    "build:crypto": "cd rust/crypto && wasm-pack build --target bundler --out-dir ../../src/wasm/crypto && echo -n > ../../src/wasm/crypto/.gitignore",
+    "build:cypher": "cd rust/cypher && wasm-pack build --target bundler --out-dir ../../src/wasm/cypher && echo -n > ../../src/wasm/cypher/.gitignore",
+    "build:browser:crypto": "cd rust/crypto && wasm-pack build --target web --out-dir ../../src/wasm-browser/crypto && echo -n > ../../src/wasm-browser/crypto/.gitignore",
+    "build:browser:cypher": "cd rust/cypher && wasm-pack build --target web --out-dir ../../src/wasm-browser/cypher && echo -n > ../../src/wasm-browser/cypher/.gitignore",
+    "build:browser": "npm run build:browser:crypto && npm run build:browser:cypher",
+    "build": "npm run build:crypto && npm run build:cypher && npm run build:browser",
     "build:test:crypto": "cd rust/crypto   && wasm-pack build --target web --out-dir ../../test/wasm/crypto",
     "build:test:cypher": "cd rust/cypher   && wasm-pack build --target web --out-dir ../../test/wasm/cypher",
     "build:test": "npm run build:test:crypto && npm run build:test:cypher",
@@ -34,5 +58,11 @@
     "webwallet",
     "cryptocurrency"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "bin": {
+    "concealjs": "./bin/concealjs.js"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.0"
+  }
 }

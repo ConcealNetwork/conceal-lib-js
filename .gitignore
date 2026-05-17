@@ -2,3 +2,5 @@
 /pkg
 /js/wasm/
 /node_modules/
+
+*.tgz

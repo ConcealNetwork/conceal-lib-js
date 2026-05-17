@@ -4,9 +4,80 @@
 `conceal-web-wallet`.  Heavy operations are compiled from Rust to WebAssembly;
 simple string operations stay in plain JavaScript where JIT compilation wins.
 
-```
+---
+
+## Use
+
+### Bundlers and Node (ESM)
+
+```js
 import { mnemonic, crypto, cypher } from "concealjs";
 ```
+
+Works with Vite, webpack, Rollup, and Node when your toolchain resolves the package `import` condition. WASM is loaded by the bundler automatically.
+
+### AMD / RequireJS (e.g. conceal-web-wallet)
+
+Projects that serve TypeScript/AMD with RequireJS and no app bundler should **vendor** a prebuilt copy into the repo:
+
+```sh
+npm install concealjs
+npx concealjs --prebuild
+```
+
+By default this writes `src/lib/concealjs/` (single `concealjs.js` ~260 KB with WASM inlined, plus `.d.ts` files). Use a custom directory if needed:
+
+```sh
+npx concealjs --prebuild --out src/lib/concealjs
+```
+
+Re-run prebuild after upgrading `concealjs`.
+
+#### TypeScript
+
+Point the compiler at the vendored types (in `tsconfig.json` or whatever file holds `compilerOptions`, e.g. `tsconfig.json`):
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "concealjs": ["./src/lib/concealjs/index.d.ts"]
+    }
+  }
+}
+```
+
+If you used `--out`, change the `concealjs` path to match that folder.
+
+#### RequireJS
+
+Add a path (relative to your RequireJS `baseUrl`, often `src/`):
+
+```js
+require.config({
+  paths: {
+    concealjs: "lib/concealjs/concealjs",
+  },
+});
+```
+
+Load and use the global API:
+
+```js
+require(["concealjs"], function (cj) {
+  const keys = cj.crypto.generate_keys(seedHex);
+  // cj.mnemonic, cj.cypher
+});
+```
+
+If another AMD module calls `require("concealjs")` synchronously (e.g. benchmarks in `Cn.ts`), add a TypeScript AMD dependency so RequireJS fetches it first:
+
+```ts
+/// <amd-dependency path="concealjs" />
+```
+
+CLI help: `npx concealjs --help`.
 
 ---
 

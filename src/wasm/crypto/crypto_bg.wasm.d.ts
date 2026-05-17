@@ -1,0 +1,30 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const cn_fast_hash: (a: number, b: number) => [number, number, number, number];
+export const create_address: (a: number, b: number) => [number, number, number];
+export const decode_address: (a: number, b: number) => [number, number, number];
+export const derive_public_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+export const derive_secret_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+export const ge_add: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const ge_frombytes_vartime: (a: number, b: number) => [number, number, number, number];
+export const ge_mul8: (a: number, b: number) => [number, number, number, number];
+export const ge_p3_tobytes: (a: number, b: number) => [number, number, number, number];
+export const ge_scalarmult: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const ge_scalarmult_base: (a: number, b: number) => [number, number, number, number];
+export const generate_key_derivation: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const generate_keys: (a: number, b: number) => [number, number, number];
+export const hash_to_scalar: (a: number, b: number) => [number, number, number, number];
+export const sc_0: () => [number, number];
+export const sc_add: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const sc_check: (a: number, b: number) => [number, number, number];
+export const sc_mulsub: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
+export const sc_reduce32: (a: number, b: number) => [number, number, number, number];
+export const sc_sub: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const ge_tobytes: (a: number, b: number) => [number, number, number, number];
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_externrefs: WebAssembly.Table;
+export const __externref_table_dealloc: (a: number) => void;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __wbindgen_start: () => void;
