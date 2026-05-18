@@ -1,6 +1,6 @@
 # concealjs — Cryptographic primitives for Conceal Network
 
-`concealjs` is the one-stop npm package for every cryptographic function used by
+`conceal-lib-js` is the one-stop npm package for every cryptographic function used by
 `conceal-web-wallet`.  Heavy operations are compiled from Rust to WebAssembly;
 simple string operations stay in plain JavaScript where JIT compilation wins.
 
@@ -31,107 +31,27 @@ By default this writes `src/lib/concealjs/` (single `concealjs.js` ~260 KB with 
 npx concealjs --prebuild --out src/lib/concealjs
 ```
 
-Re-run prebuild after upgrading `concealjs`.
+CLI help: `npx concealjs --help`.
+
 
 #### TypeScript
 
-Point the compiler at the vendored types (in `tsconfig.json` or whatever file holds `compilerOptions`, e.g. `tsconfig.json`):
-
-```json
-{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "concealjs": ["./src/lib/concealjs/index.d.ts"]
-    }
-  }
-}
-```
+Verify concealjs.d.ts in included in src/lib/concealjs
 
 If you used `--out`, change the `concealjs` path to match that folder.
 
-#### RequireJS
+#### index.html
 
-Add a path (relative to your RequireJS `baseUrl`, often `src/`):
+Add before RequireJS:
 
 ```js
-require.config({
-  paths: {
-    concealjs: "lib/concealjs/concealjs",
-  },
-});
+<script src="lib/concealjs/concealjs.js"></script>
 ```
 
 Load and use the global API:
 
-```js
-require(["concealjs"], function (cj) {
-  const keys = cj.crypto.generate_keys(seedHex);
-  // cj.mnemonic, cj.cypher
-});
-```
-
-If another AMD module calls `require("concealjs")` synchronously (e.g. benchmarks in `Cn.ts`), add a TypeScript AMD dependency so RequireJS fetches it first:
-
 ```ts
-/// <amd-dependency path="concealjs" />
-```
-
-CLI help: `npx concealjs --help`.
-
----
-
-## Workspace layout
-
-```
-concealjs/
-├── Cargo.toml              # Rust workspace root
-├── package.json            # npm package (main: js/index.js)
-├── rustfmt.toml
-│
-├── rust/                   # all Rust crates → compiled to WASM
-│   ├── mnemonic/           # mn_encode / mn_decode / mn_random (Rust, kept for reference)
-│   ├── crypto/             # keccak, EC ops, key derivation, address
-│   └── cypher/             # chacha8 / chacha12 stream ciphers
-│
-├── js/                     # public JS/TS API layer (the npm package)
-│   ├── index.js            # re-exports: mnemonic, crypto, cypher namespaces
-│   ├── index.d.ts          # aggregated TypeScript declarations
-│   ├── mnemonic.js         # plain-JS mnemonic (2.8× faster than WASM for string ops)
-│   └── wasm/               # wasm-pack bundler outputs (git-ignored)
-│       ├── crypto/
-│       └── cypher/
-│
-└── tests/                  # JS integration tests (populated per phase)
-```
-
----
-
-## Prerequisites
-
-```sh
-curl https://sh.rustup.rs -sSf | sh
-rustup target add wasm32-unknown-unknown
-cargo install wasm-pack
-```
-
----
-
-## Build
-
-```sh
-npm run build            # builds all three WASM crates
-npm run build:crypto     # cd rust/crypto && wasm-pack build …
-npm run build:cypher     # cd rust/cypher && wasm-pack build …
-npm run build:mnemonic   # cd rust/mnemonic && wasm-pack build …
-```
-
-All WASM outputs land in `js/wasm/<crate>/` (git-ignored).
-
-## Native unit tests
-
-```sh
-cargo test --workspace   # 29 tests: 16 crypto + 6 cypher + 7 mnemonic
+const result = concealjs.crypto.derive_secret_key(derivation, out_index, sec);
 ```
 
 ---
@@ -268,3 +188,61 @@ To verify against the web wallet, open the browser console and run:
 ```js
 Cn.create_address("0101010101010101010101010101010101010101010101010101010101010101")
 ```
+
+---
+# DEVELOPMENT
+
+## Prerequisites
+
+```sh
+curl https://sh.rustup.rs -sSf | sh
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack
+```
+
+---
+
+## Build
+
+```sh
+npm run build            # builds all three WASM crates
+npm run build:crypto     # cd rust/crypto && wasm-pack build …
+npm run build:cypher     # cd rust/cypher && wasm-pack build …
+npm run build:mnemonic   # cd rust/mnemonic && wasm-pack build …
+```
+
+All WASM outputs land in `js/wasm/<crate>/` (git-ignored).
+
+## Native unit tests
+
+```sh
+cargo test --workspace   # 29 tests: 16 crypto + 6 cypher + 7 mnemonic
+```
+
+---
+
+## Workspace layout
+
+```
+concealjs/
+├── Cargo.toml              # Rust workspace root
+├── package.json            # npm package (main: js/index.js)
+├── rustfmt.toml
+│
+├── rust/                   # all Rust crates → compiled to WASM
+│   ├── mnemonic/           # mn_encode / mn_decode / mn_random (Rust, kept for reference)
+│   ├── crypto/             # keccak, EC ops, key derivation, address
+│   └── cypher/             # chacha8 / chacha12 stream ciphers
+│
+├── js/                     # public JS/TS API layer (the npm package)
+│   ├── index.js            # re-exports: mnemonic, crypto, cypher namespaces
+│   ├── index.d.ts          # aggregated TypeScript declarations
+│   ├── mnemonic.js         # plain-JS mnemonic (2.8× faster than WASM for string ops)
+│   └── wasm/               # wasm-pack bundler outputs (git-ignored)
+│       ├── crypto/
+│       └── cypher/
+│
+└── tests/                  # JS integration tests (populated per phase)
+```
+
+

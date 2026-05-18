@@ -57,11 +57,42 @@ export async function runPrebuild({ outDir }) {
     await fs.promises.copyFile(src, dest);
   }
 
+  const globalDts = `type ConcealJsGlobal = {
+  crypto: typeof import("./wasm/crypto/crypto");
+  cypher: typeof import("./wasm/cypher/cypher");
+  mnemonic: typeof import("./js/mnemonic");
+};
+
+declare global {
+  const concealjs: ConcealJsGlobal;
+
+  interface Window {
+    concealjs: ConcealJsGlobal;
+  }
+}
+
+export {};
+`;
+
+  await fs.promises.writeFile(path.join(outDir, "concealjs.d.ts"), globalDts);
+
+  const readmePath = path.join(PKG_ROOT, "README.md");
+  const readme = await fs.promises.readFile(readmePath, "utf8");
+  const devMarker = "\n---\n# DEVELOPMENT";
+  const devIdx = readme.indexOf(devMarker);
+  if (devIdx === -1) {
+    throw new Error(`${readmePath}: expected DEVELOPMENT section marker not found`);
+  }
+  await fs.promises.writeFile(
+    path.join(outDir, "README.md"),
+    `${readme.slice(0, devIdx).trimEnd()}\n`,
+  );
+
   const pkg = {
     name: "concealjs-prebuilt",
     private: true,
     main: "concealjs.js",
-    types: "index.d.ts",
+    types: "concealjs.d.ts",
   };
   await fs.promises.writeFile(
     path.join(outDir, "package.json"),

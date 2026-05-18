@@ -1,6 +1,6 @@
 {
-  "name": "concealjs",
-  "version": "0.1.2",
+  "name": "conceal-lib-js",
+  "version": "0.1.5",
   "description": "Conceal Network cryptographic primitives — hybrid library routing calls to Rust/WASM or native JavaScript depending on the operation",
   "author": "Conceal Devs",
   "type": "module",
@@ -22,6 +22,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "README.md",
     "bin/",
     "scripts/",
     "src/**/*.js",

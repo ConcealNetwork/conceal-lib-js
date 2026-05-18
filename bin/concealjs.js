@@ -21,7 +21,8 @@ Example:
 Output (under src/lib/concealjs by default):
   concealjs.js       Self-contained bundle (~260 KB, WASM inlined)
   concealjs.js.map   Source map
-  index.d.ts         TypeScript types
+  concealjs.d.ts     Global API TypeScript types
+  README.md          Usage notes (AMD / RequireJS / script tag)
   js/mnemonic.d.ts
   wasm/crypto/crypto.d.ts
   wasm/cypher/cypher.d.ts
@@ -35,7 +36,7 @@ RequireJS:
   });
 
 TypeScript (paths in tsconfig):
-  "paths": { "concealjs": ["./src/lib/concealjs/index.d.ts"] }
+  "paths": { "concealjs": ["./src/lib/concealjs/concealjs.d.ts"] }
 `);
 }
 
