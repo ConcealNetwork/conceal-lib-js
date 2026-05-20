@@ -1,9 +1,11 @@
+import { runCnutilsTests } from "./test-cnutils.js";
 import { runCryptoTests } from "./test-crypto.js";
 import { runCypherTests } from "./test-cypher.js";
 import { runMnemonicTests } from "./test-mnemonic.js";
 
 const SUITES = [
   { name: "mnemonic", run: runMnemonicTests },
+  { name: "cnutils", run: runCnutilsTests },
   { name: "crypto", run: runCryptoTests },
   { name: "cypher", run: runCypherTests },
 ];

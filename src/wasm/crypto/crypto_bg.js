@@ -341,6 +341,48 @@ export function generate_key_derivation(pub_hex, sec_hex) {
 }
 
 /**
+ * Computes a CryptoNote key image: `sec × hash_to_ec(pub)`.
+ *
+ * Port of conceal-core `crypto_ops::generate_key_image`.
+ * Wallet equivalent: `CnNativeBride.generate_key_image_2(pub, sec)`.
+ *
+ * # Parameters
+ * - `pub_hex` — 64-char hex (32-byte public key).
+ * - `sec_hex` — 64-char hex (32-byte secret key; must be canonical per `sc_check`).
+ *
+ * # Returns
+ * 64-char hex key image.
+ *
+ * # Errors
+ * Invalid hex length/content, or non-canonical `sec_hex`.
+ * @param {string} pub_hex
+ * @param {string} sec_hex
+ * @returns {string}
+ */
+export function generate_key_image(pub_hex, sec_hex) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(sec_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.generate_key_image(ptr0, len0, ptr1, len1);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
  * generate_keys: sec = sc_reduce32(seed), pub = ge_scalarmult_base(sec).
  * Returns `{sec: hex, pub: hex}`.  Matches `Cn.generate_keys(seed)`.
  * @param {string} seed_hex
@@ -354,6 +396,33 @@ export function generate_keys(seed_hex) {
         throw takeFromExternrefTable0(ret[1]);
     }
     return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * hash_to_ec: cn_fast_hash(pub) → ge_fromfe → ge_mul8, 32-byte compressed point.
+ * Matches `CnNativeBride.hash_to_ec_2(pub)` in Cn.ts.
+ * @param {string} pub_hex
+ * @returns {string}
+ */
+export function hash_to_ec(pub_hex) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.hash_to_ec(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
 }
 
 /**

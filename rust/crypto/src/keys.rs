@@ -89,14 +89,20 @@ pub fn derive_secret_key_bytes(
     scalar::sc_add_bytes(base_sec, &s)
 }
 
-/// generate_key_image: public_key × secret_key (using hash-to-point for key image).
-/// Placeholder — full impl needs ge_fromfe_frombytes_vartime (hash-to-curve).
-#[allow(dead_code)]
+/// generate_key_image: `sec × hash_to_ec(pub)` per conceal-core `crypto.cpp`.
 pub fn generate_key_image_bytes(
     pub_key: &[u8; 32],
     sec_key: &[u8; 32],
 ) -> Result<[u8; 32], String> {
-    ge::ge_scalarmult_bytes(pub_key, sec_key)
+    crate::ffi::generate_key_image_bytes(pub_key, sec_key)
+}
+
+/// generate_key_image with hex inputs and hex output (64-char lowercase hex).
+pub fn generate_key_image_hex(pub_hex: &str, sec_hex: &str) -> Result<String, String> {
+    let pub_key = crate::utils::hex_to_bytes32(pub_hex)?;
+    let sec_key = crate::utils::hex_to_bytes32(sec_hex)?;
+    crate::ffi::generate_key_image_bytes(&pub_key, &sec_key)
+        .map(|bytes| crate::utils::bytes_to_hex(&bytes))
 }
 
 #[cfg(test)]
@@ -122,6 +128,21 @@ mod tests {
 
         assert_eq!(derived_pub, derived_pub_from_sec,
             "derive_public_key and derive_secret_key + ge_scalarmult_base must agree");
+    }
+
+    /// Parity with conceal-core `tests/crypto/tests.txt` (`generate_key_image` vectors).
+    #[test]
+    fn generate_key_image_conceal_core_vector() {
+        let pub_hex = "1570eb695fa38fa7c395ddcb90e53e9b4d366a920e9c4b3ec988807d6f21914d";
+        let sec_hex = "8f5b3b5407d40d99d7c1e6b61b022b2f18878c2b24d6d247dbd865f6fc80400b";
+        let expected = "e744a16a913da96bc29c5197d01bb00c4e59990bbccd7785ef413d98cae1696a";
+        let pub_key = crate::utils::hex_to_bytes32(pub_hex).unwrap();
+        let sec_key = crate::utils::hex_to_bytes32(sec_hex).unwrap();
+        assert_eq!(
+            bytes_to_hex(&generate_key_image_bytes(&pub_key, &sec_key).unwrap()),
+            expected
+        );
+        assert_eq!(generate_key_image_hex(pub_hex, sec_hex).unwrap(), expected);
     }
 
     /// Verify deterministic output for a known zero seed.

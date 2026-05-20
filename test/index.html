@@ -33,6 +33,18 @@
   <h1>concealjs</h1>
   <h2>WASM test suite — open DevTools console for detail</h2>
   <div id="results"><em>Running…</em></div>
-  <script type="module" src="./test-all.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "#cnutils-wasm": "/src/js/cnutils-wasm.browser.js"
+    }
+  }
+  </script>
+  <script type="module">
+    import initCrypto from "../src/wasm-browser/crypto/crypto.js";
+    import initCypher from "../src/wasm-browser/cypher/cypher.js";
+    await Promise.all([initCrypto(), initCypher()]);
+    await import("./test-all.js");
+  </script>
 </body>
 </html>

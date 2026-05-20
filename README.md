@@ -2,7 +2,8 @@
 
 `conceal-lib-js` is the one-stop npm package for every cryptographic function used by
 `conceal-web-wallet`.  Heavy operations are compiled from Rust to WebAssembly;
-simple string operations stay in plain JavaScript where JIT compilation wins.
+`CnUtils`-style helpers, Keccak, and string-heavy work stay in plain JavaScript
+(and TweetNaCl CN extensions) where that wins on latency.
 
 ---
 
@@ -11,7 +12,7 @@ simple string operations stay in plain JavaScript where JIT compilation wins.
 ### Bundlers and Node (ESM)
 
 ```js
-import { mnemonic, crypto, cypher } from "concealjs";
+import { mnemonic, cnutils, crypto, cypher } from "concealjs";
 ```
 
 Works with Vite, webpack, Rollup, and Node when your toolchain resolves the package `import` condition. WASM is loaded by the bundler automatically.
@@ -68,6 +69,31 @@ const result = concealjs.crypto.derive_secret_key(derivation, out_index, sec);
 | `mn_encode(str, wordset_name?)` | `str`: 64-char hex seed; `wordset_name`: `'english'` (default) / `'electrum'` / `'japanese'` | 25-word mnemonic string | Throws on invalid input |
 | `mn_decode(str, wordset_name?)` | `str`: space-separated mnemonic (25 words for English); `wordset_name`: same options | 64-char hex seed string | Verifies checksum word; throws on mismatch |
 | `mn_random(bits)` | `bits`: multiple of 32 — typically `256` | hex string of length `bits/4` | Browser only — uses `window.crypto.getRandomValues` |
+
+---
+
+### Namespace `cnutils` — JavaScript (`src/js/cnutils.js`)
+
+> Port of `CnUtils` from `conceal-web-wallet/src/model/Cn.ts`.
+> `cn_fast_hash` uses **Keccak-256** from `src/js/tiers/sha3.js` (same as the wallet’s `keccak_256`, not SHA3-256).
+> Curve ops use `src/js/tiers/nacl.js` (`nacl.ll`). Scalar helpers (`hash_to_scalar`, `sc_add`, `sc_sub`) use `crypto` WASM.
+
+Exported constant: `STRUCT_SIZES`.
+
+| Function | Parameters | Returns | Notes |
+|---|---|---|---|
+| `hextobin` / `bintohex` | hex ↔ bytes | `Uint8Array` / hex | |
+| `swapEndian` / `swapEndianC` | string | string | Byte or char order |
+| `d2h` / `d2s` / `h2d` / `d2b` | integer / hex | hex or number | `JSBigInt` internally; `d2s` = endian-swapped scalar |
+| `encode_varint` / `encode_varint_term` | `number \| string \| JSBigInt` | hex | CryptoNote varint |
+| `cn_fast_hash` | hex string | 64-char hex | `keccak_256(hextobin(input))` via `tiers/sha3.js` |
+| `derivation_to_scalar` | 64-char derivation + index | 64-char scalar | WASM `hash_to_scalar` |
+| `valid_hex` / `hex_xor` / `trimRight` / `padLeft` | — | — | Utilities |
+| `sec_key_to_pub` / `ge_scalarmult*` / `ge_add` / `ge_sub` / `ge_neg` | 64-char hex | 64-char hex | `nacl.ll` |
+| `ge_double_scalarmult_base_vartime` | `c`, `P`, `r` | 64-char hex | |
+| `ge_double_scalarmult_postcomp_vartime` | `r`, `P`, `c`, `I` | 64-char hex | Needs `crypto.hash_to_ec` (rebuild WASM) |
+| `decompose_amount_into_digits` | amount | `JSBigInt[]` | |
+| `decode_rct_ecdh` / `encode_rct_ecdh` | `{ mask, amount }`, key | `{ mask, amount }` | WASM scalar add/sub |
 
 ---
 
@@ -156,7 +182,10 @@ All points are 64-char hex (32-byte compressed Edwards y format).
 | `mn_encode` | `mnemonic` | **plain JS** | String-heavy; JS JIT ~2.8× faster than WASM boundary |
 | `mn_decode` | `mnemonic` | **plain JS** | Same as above |
 | `mn_random` | `mnemonic` | **plain JS** | Thin wrapper over `window.crypto` |
-| `cn_fast_hash` | `crypto` | **Rust WASM** | Keccak-256 — compute-heavy |
+| `hextobin`, `encode_varint`, `ge_add`, … | `cnutils` | **plain JS** (+ `nacl.ll`) | `CnUtils` helpers |
+| `cn_fast_hash` | `cnutils` | **plain JS** (`tiers/sha3.js`) | Same Keccak as wallet; faster than WASM boundary for typical hex |
+| `cn_fast_hash` | `crypto` | **Rust WASM** | Same digest; use when already in WASM-only path |
+| `derivation_to_scalar`, RCT ECDH | `cnutils` → `crypto` | **mixed** | JS glue + WASM scalars |
 | `hash_to_scalar` | `crypto` | **Rust WASM** | Hash + reduce |
 | `sc_reduce32` | `crypto` | **Rust WASM** | Modular reduction |
 | `sc_add / sc_sub / sc_mulsub / sc_0 / sc_check` | `crypto` | **Rust WASM** | Scalar field arithmetic |
@@ -198,6 +227,7 @@ Cn.create_address("0101010101010101010101010101010101010101010101010101010101010
 curl https://sh.rustup.rs -sSf | sh
 rustup target add wasm32-unknown-unknown
 cargo install wasm-pack
+sudo apt install clang lld
 ```
 
 ---
@@ -205,19 +235,34 @@ cargo install wasm-pack
 ## Build
 
 ```sh
-npm run build            # builds all three WASM crates
+npm run build            # crypto + cypher WASM → src/wasm and src/wasm-browser
 npm run build:crypto     # cd rust/crypto && wasm-pack build …
 npm run build:cypher     # cd rust/cypher && wasm-pack build …
-npm run build:mnemonic   # cd rust/mnemonic && wasm-pack build …
 ```
 
-All WASM outputs land in `js/wasm/<crate>/` (git-ignored).
+WASM outputs land in `src/wasm/<crate>/` (git-ignored). `cnutils` does not use WASM for `cn_fast_hash` (uses `src/js/tiers/sha3.js`).
 
 ## Native unit tests
 
 ```sh
 cargo test --workspace   # 29 tests: 16 crypto + 6 cypher + 7 mnemonic
 ```
+
+## JS integration tests
+
+Browser suite (`test/`): mnemonic, **cnutils**, crypto, cypher.
+
+```sh
+npm run build              # src/wasm for cnutils + package consumers
+npm run build:test         # test/wasm (web target) for crypto/cypher suites
+npx --yes serve .
+```
+
+Open `http://localhost:3000/test/` (or the port `serve` prints).
+
+Use `npx serve .` from the repo root (serves `serve.json` so `.wasm` files get
+`Content-Type: application/wasm`).
+
 
 ---
 
@@ -234,15 +279,23 @@ concealjs/
 │   ├── crypto/             # keccak, EC ops, key derivation, address
 │   └── cypher/             # chacha8 / chacha12 stream ciphers
 │
-├── js/                     # public JS/TS API layer (the npm package)
-│   ├── index.js            # re-exports: mnemonic, crypto, cypher namespaces
-│   ├── index.d.ts          # aggregated TypeScript declarations
-│   ├── mnemonic.js         # plain-JS mnemonic (2.8× faster than WASM for string ops)
+├── src/                    # public JS/TS API layer (the npm package)
+│   ├── index.js            # re-exports: mnemonic, cnutils, crypto, cypher
+│   ├── index.d.ts
+│   ├── js/
+│   │   ├── mnemonic.js
+│   │   ├── cnutils.js      # CnUtils port
+│   │   └── tiers/          # biginteger.js, nacl.js, sha3.js
 │   └── wasm/               # wasm-pack bundler outputs (git-ignored)
 │       ├── crypto/
 │       └── cypher/
 │
-└── tests/                  # JS integration tests (populated per phase)
+└── test/                   # browser integration tests
+    ├── test-all.js
+    ├── test-cnutils.js
+    ├── test-crypto.js
+    ├── test-mnemonic.js
+    └── wasm/               # web-target WASM for test page (git-ignored)
 ```
 
 

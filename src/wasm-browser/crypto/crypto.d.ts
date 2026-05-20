@@ -76,10 +76,34 @@ export function ge_tobytes(point_hex: string): string;
 export function generate_key_derivation(pub_hex: string, sec_hex: string): string;
 
 /**
+ * Computes a CryptoNote key image: `sec × hash_to_ec(pub)`.
+ *
+ * Port of conceal-core `crypto_ops::generate_key_image`.
+ * Wallet equivalent: `CnNativeBride.generate_key_image_2(pub, sec)`.
+ *
+ * # Parameters
+ * - `pub_hex` — 64-char hex (32-byte public key).
+ * - `sec_hex` — 64-char hex (32-byte secret key; must be canonical per `sc_check`).
+ *
+ * # Returns
+ * 64-char hex key image.
+ *
+ * # Errors
+ * Invalid hex length/content, or non-canonical `sec_hex`.
+ */
+export function generate_key_image(pub_hex: string, sec_hex: string): string;
+
+/**
  * generate_keys: sec = sc_reduce32(seed), pub = ge_scalarmult_base(sec).
  * Returns `{sec: hex, pub: hex}`.  Matches `Cn.generate_keys(seed)`.
  */
 export function generate_keys(seed_hex: string): any;
+
+/**
+ * hash_to_ec: cn_fast_hash(pub) → ge_fromfe → ge_mul8, 32-byte compressed point.
+ * Matches `CnNativeBride.hash_to_ec_2(pub)` in Cn.ts.
+ */
+export function hash_to_ec(pub_hex: string): string;
 
 /**
  * hash_to_scalar: cn_fast_hash then sc_reduce32.
@@ -133,7 +157,9 @@ export interface InitOutput {
     readonly ge_scalarmult: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly ge_scalarmult_base: (a: number, b: number) => [number, number, number, number];
     readonly generate_key_derivation: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly generate_key_image: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly generate_keys: (a: number, b: number) => [number, number, number];
+    readonly hash_to_ec: (a: number, b: number) => [number, number, number, number];
     readonly hash_to_scalar: (a: number, b: number) => [number, number, number, number];
     readonly sc_0: () => [number, number];
     readonly sc_add: (a: number, b: number, c: number, d: number) => [number, number, number, number];

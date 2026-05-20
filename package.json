@@ -1,12 +1,18 @@
 {
   "name": "conceal-lib-js",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "Conceal Network cryptographic primitives — hybrid library routing calls to Rust/WASM or native JavaScript depending on the operation",
   "author": "Conceal Devs",
   "type": "module",
   "main": "./src/index.js",
   "browser": "./src/browser.js",
   "types": "./src/index.d.ts",
+  "imports": {
+    "#cnutils-wasm": {
+      "browser": "./src/js/cnutils-wasm.browser.js",
+      "default": "./src/js/cnutils-wasm.node.js"
+    }
+  },
   "exports": {
     ".": {
       "types": "./src/index.d.ts",

@@ -13,9 +13,11 @@ const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const TYPE_FILES = [
   "index.d.ts",
   "js/mnemonic.d.ts",
+  "js/cnutils.d.ts",
   "wasm/crypto/crypto.d.ts",
   "wasm/cypher/cypher.d.ts",
 ];
+
 
 /**
  * @param {{ outDir: string }} options
@@ -42,6 +44,17 @@ export async function runPrebuild({ outDir }) {
     minify: true,
     sourcemap: true,
     loader: { ".wasm": "binary" },
+    conditions: ["browser"],
+    plugins: [
+      {
+        name: "prebuild-browser-shims",
+        setup(build) {
+          build.onResolve({ filter: /^crypto$/ }, () => ({
+            path: path.join(PKG_ROOT, "scripts/stub-node-crypto.cjs"),
+          }));
+        },
+      },
+    ],
     footer: {
       js: "if(typeof define==='function'&&define.amd){define(function(){return concealjs;});}",
     },
@@ -61,6 +74,7 @@ export async function runPrebuild({ outDir }) {
   crypto: typeof import("./wasm/crypto/crypto");
   cypher: typeof import("./wasm/cypher/cypher");
   mnemonic: typeof import("./js/mnemonic");
+  cnutils: typeof import("./js/cnutils");
 };
 
 declare global {

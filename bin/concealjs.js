@@ -24,6 +24,7 @@ Output (under src/lib/concealjs by default):
   concealjs.d.ts     Global API TypeScript types
   README.md          Usage notes (AMD / RequireJS / script tag)
   js/mnemonic.d.ts
+  js/cnutils.d.ts
   wasm/crypto/crypto.d.ts
   wasm/cypher/cypher.d.ts
 

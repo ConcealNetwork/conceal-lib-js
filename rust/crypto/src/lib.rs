@@ -11,13 +11,14 @@
 //! | `keccak` | `keccak256_bytes` (raw) |
 //! | `scalar` | `sc_reduce32`, `sc_add`, `sc_sub`, `sc_mulsub`, `sc_0`, `sc_check` |
 //! | `ge` | `ge_scalarmult_base`, `ge_scalarmult`, `ge_mul8`, `ge_add`, `ge_tobytes` |
-//! | `keys` | `generate_keys`, `generate_key_derivation`, `derive_public_key`, `derive_secret_key`, `hash_to_scalar` |
+//! | `keys` | `generate_keys`, `generate_key_derivation`, `derive_public_key`, `derive_secret_key`, `hash_to_scalar`, `generate_key_image` |
 //! | `address` | `create_address`, `decode_address` |
 //! | `base58` | CryptoNote Base58 encode/decode |
 //! | `utils` | hex conversion helpers |
 
 mod address;
 mod base58;
+mod ffi;
 mod ge;
 mod keccak;
 mod keys;
@@ -236,6 +237,33 @@ pub fn derive_secret_key(derivation_hex: &str, out_index: u32, base_sec_hex: &st
     let derivation = hex_to_bytes32(derivation_hex).map_err(|e| JsValue::from_str(&e))?;
     let base_sec = hex_to_bytes32(base_sec_hex).map_err(|e| JsValue::from_str(&e))?;
     Ok(bytes_to_hex(&keys::derive_secret_key_bytes(&derivation, out_index, &base_sec)))
+}
+
+/// hash_to_ec: cn_fast_hash(pub) → ge_fromfe → ge_mul8, 32-byte compressed point.
+/// Matches `CnNativeBride.hash_to_ec_2(pub)` in Cn.ts.
+#[wasm_bindgen]
+pub fn hash_to_ec(pub_hex: &str) -> Result<String, JsValue> {
+    let pub_key = hex_to_bytes32(pub_hex).map_err(|e| JsValue::from_str(&e))?;
+    Ok(bytes_to_hex(&ffi::hash_to_ec_bytes(&pub_key)))
+}
+
+/// Computes a CryptoNote key image: `sec × hash_to_ec(pub)`.
+///
+/// Port of conceal-core `crypto_ops::generate_key_image`.
+/// Wallet equivalent: `CnNativeBride.generate_key_image_2(pub, sec)`.
+///
+/// # Parameters
+/// - `pub_hex` — 64-char hex (32-byte public key).
+/// - `sec_hex` — 64-char hex (32-byte secret key; must be canonical per `sc_check`).
+///
+/// # Returns
+/// 64-char hex key image.
+///
+/// # Errors
+/// Invalid hex length/content, or non-canonical `sec_hex`.
+#[wasm_bindgen]
+pub fn generate_key_image(pub_hex: &str, sec_hex: &str) -> Result<String, JsValue> {
+    keys::generate_key_image_hex(pub_hex, sec_hex).map_err(|e| JsValue::from_str(&e))
 }
 
 // ---------------------------------------------------------------------------

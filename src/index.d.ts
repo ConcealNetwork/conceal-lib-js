@@ -5,5 +5,6 @@
  */
 
 export * as mnemonic from "./js/mnemonic";
+export * as cnutils from "./js/cnutils";
 export * as crypto from "./wasm/crypto/crypto";
 export * as cypher from "./wasm/cypher/cypher";

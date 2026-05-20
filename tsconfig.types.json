@@ -12,7 +12,8 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/js/mnemonic.js"
+    "src/js/mnemonic.js",
+    "src/js/cnutils.js"
   ],
   "exclude": [
     "src/wasm"
