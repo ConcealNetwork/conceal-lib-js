@@ -5,6 +5,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Build & Release
@@ -51,10 +54,18 @@ jobs:
         run: npm run types
 
       - name: Pack tarball
-        run: npm pack
+        run: npm pack --ignore-scripts
 
-      - name: Upload release tarball
+      - name: Verify pack output
+        run: ls -la *.tgz
+
+      - name: Create GitHub Release and upload tarball
         uses: softprops/action-gh-release@v3
+        if: github.ref_type == 'tag'
         with:
-          files: "*.tgz"
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: |
+            *.tgz
+          fail_on_unmatched_files: true
           generate_release_notes: true
