@@ -101,8 +101,7 @@ pub fn generate_key_image_bytes(
 pub fn generate_key_image_hex(pub_hex: &str, sec_hex: &str) -> Result<String, String> {
     let pub_key = crate::utils::hex_to_bytes32(pub_hex)?;
     let sec_key = crate::utils::hex_to_bytes32(sec_hex)?;
-    crate::ffi::generate_key_image_bytes(&pub_key, &sec_key)
-        .map(|bytes| crate::utils::bytes_to_hex(&bytes))
+    generate_key_image_bytes(&pub_key, &sec_key).map(|bytes| crate::utils::bytes_to_hex(&bytes))
 }
 
 #[cfg(test)]
@@ -126,8 +125,10 @@ mod tests {
         let derived_pub_from_sec = crate::ge::ge_scalarmult_base_bytes(&derived_sec);
         let derived_pub = derive_public_key_bytes(&derivation, 0, &spend_pub).unwrap();
 
-        assert_eq!(derived_pub, derived_pub_from_sec,
-            "derive_public_key and derive_secret_key + ge_scalarmult_base must agree");
+        assert_eq!(
+            derived_pub, derived_pub_from_sec,
+            "derive_public_key and derive_secret_key + ge_scalarmult_base must agree"
+        );
     }
 
     /// Parity with conceal-core `tests/crypto/tests.txt` (`generate_key_image` vectors).

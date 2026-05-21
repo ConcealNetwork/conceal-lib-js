@@ -14,6 +14,8 @@ const TYPE_FILES = [
   "index.d.ts",
   "js/mnemonic.d.ts",
   "js/cnutils.d.ts",
+  "js/random.d.ts",
+  "js/cn.d.ts",
   "wasm/crypto/crypto.d.ts",
   "wasm/cypher/cypher.d.ts",
 ];
@@ -75,6 +77,8 @@ export async function runPrebuild({ outDir }) {
   cypher: typeof import("./wasm/cypher/cypher");
   mnemonic: typeof import("./js/mnemonic");
   cnutils: typeof import("./js/cnutils");
+  random: typeof import("./js/random");
+  cn: typeof import("./js/cn");
 };
 
 declare global {

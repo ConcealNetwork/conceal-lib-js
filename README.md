@@ -12,7 +12,7 @@
 ### Bundlers and Node (ESM)
 
 ```js
-import { mnemonic, cnutils, crypto, cypher } from "concealjs";
+import { mnemonic, random, cn, cnutils, crypto, cypher } from "concealjs";
 ```
 
 Works with Vite, webpack, Rollup, and Node when your toolchain resolves the package `import` condition. WASM is loaded by the bundler automatically.
@@ -72,6 +72,20 @@ const result = concealjs.crypto.derive_secret_key(derivation, out_index, sec);
 
 ---
 
+### Namespace `random` — plain JavaScript (`src/js/random.js`)
+
+> `rand*` wrappers use `mnemonic.mn_random` (browser Web Crypto).
+> `random_scalar` also calls WASM `sc_reduce32`.
+
+| Function | Parameters | Returns | Notes |
+|---|---|---|---|
+| `rand32()` | — | 64-char hex | 256-bit seed (`mn_random(256)`) |
+| `rand16()` | — | 32-char hex | 128-bit value (`mn_random(128)`) |
+| `rand8()` | — | 16-char hex | 64-bit value (`mn_random(64)`) |
+| `random_scalar()` | — | 64-char hex | `sc_reduce32(rand32())` — canonical scalar mod *l* |
+
+---
+
 ### Namespace `cnutils` — JavaScript (`src/js/cnutils.js`)
 
 > Port of `CnUtils` from `conceal-web-wallet/src/model/Cn.ts`.
@@ -91,9 +105,21 @@ Exported constant: `STRUCT_SIZES`.
 | `valid_hex` / `hex_xor` / `trimRight` / `padLeft` | — | — | Utilities |
 | `sec_key_to_pub` / `ge_scalarmult*` / `ge_add` / `ge_sub` / `ge_neg` | 64-char hex | 64-char hex | `nacl.ll` |
 | `ge_double_scalarmult_base_vartime` | `c`, `P`, `r` | 64-char hex | |
-| `ge_double_scalarmult_postcomp_vartime` | `r`, `P`, `c`, `I` | 64-char hex | Needs `crypto.hash_to_ec` (rebuild WASM) |
+| `ge_double_scalarmult_postcomp_vartime` | `r`, `P`, `c`, `I` | 64-char hex | Uses `crypto.hash_to_ec32` on `P` (32-byte point) |
 | `decompose_amount_into_digits` | amount | `JSBigInt[]` | |
 | `decode_rct_ecdh` / `encode_rct_ecdh` | `{ mask, amount }`, key | `{ mask, amount }` | WASM scalar add/sub |
+
+---
+
+### Namespace `cn` — JavaScript + WASM (`src/js/cn.js`)
+
+> High-level helpers aligned with `Cn` wallet flows: random key generation and
+> reversing `crypto.derive_public_key`. Uses `random`, `cnutils`, and `crypto` WASM.
+
+| Function | Parameters | Returns | Notes |
+|---|---|---|---|
+| `random_keypair()` | — | `{ sec: hex, pub: hex }` | `generate_keys(rand32())` |
+| `underive_public_key(derivation, out_index, pub)` | 64-char derivation, index, 64-char derived pub | 64-char base pub | `ge_sub(pub, ge_scalarmult_base(derivation_to_scalar(...)))`; throws if lengths ≠ 64 |
 
 ---
 
@@ -144,6 +170,27 @@ All points are 64-char hex (32-byte compressed Edwards y format).
 | `generate_key_derivation(pub_hex, sec_hex)` | two 64-char hex keys | 64-char hex derivation | `8 × (sec · pub_point)` — DH shared key |
 | `derive_public_key(deriv_hex, index, base_pub_hex)` | derivation + u32 index + 64-char hex pub | 64-char hex pub | `base_pub + H(derivation‖varint(index)) · B` |
 | `derive_secret_key(deriv_hex, index, base_sec_hex)` | derivation + u32 index + 64-char hex sec | 64-char hex sec | `sc_add(base_sec, H(derivation‖varint(index)))` |
+| `generate_key_image(pub_hex, sec_hex)` | two 64-char hex keys | 64-char hex key image | `sec × hash_to_ec(pub)` via internal `ge_p3` |
+| `hash_to_ec160(pub_hex)` | 64-char hex public key | **320-char hex** (160-byte `ge_p3`) | Wallet `CnUtils.hash_to_ec` — ring sigs, `ge_scalarmult` on `GE_P3` |
+| `hash_to_ec32(pub_hex)` | 64-char hex public key | **64-char hex** compressed point | Wallet `hash_to_ec_2` — `ge_double_scalarmult_postcomp_vartime`, etc. |
+| `hash_to_ec(pub_hex)` | same as `hash_to_ec32` | 64-char hex | **Deprecated alias** — use `hash_to_ec32` or `hash_to_ec160` explicitly |
+
+Both `hash_to_ec*` helpers run `cn_fast_hash(pub)` → `ge_fromfe` → `ge_mul8`; they differ only in whether the result is serialized as `ge_p3` (160 bytes) or compressed (32 bytes).
+
+#### Signatures (`crypto.cpp`)
+
+Port of `crypto_ops::generate_signature` / `generate_ring_signature` (conceal-core C++).
+
+| Function | Parameters | Returns | Notes |
+|---|---|---|---|
+| `generate_signature(prefix_hex, pub_hex, sec_hex)` | 64-char hex hash + key pair | 128-char hex signature | Standard CN signature (`c \|\| r`) |
+| `generate_ring_signature(prefix_hex, image_hex, pubs_hex[], sec_hex, sec_index)` | prefix, key image, array of ring pub keys, secret, signer index | `string[]` of 128-char hex sigs | One signature per ring member |
+| `check_signature(prefix_hex, pub_hex, sig_hex)` | hash, public key, 128-char hex signature | `boolean` | |
+| `check_ring_signature(prefix_hex, image_hex, pubs_hex[], sigs_hex[])` | same as generate + signature array | `boolean` | |
+
+`sec_hex` must be canonical (`sc_check`). For ring signatures, `key_image_hex` must equal `generate_key_image(pubs_hex[sec_index], sec_hex)`.
+
+Rust unit tests verify **generate → check** round-trips against the same C `crypto-ops` paths (not the full `tests.txt` vectors, which assume a fixed PRNG offset after thousands of prior tests).
 
 #### Address (`CryptoNoteBasicImpl.h`, `crypto.h`)
 
@@ -182,6 +229,9 @@ All points are 64-char hex (32-byte compressed Edwards y format).
 | `mn_encode` | `mnemonic` | **plain JS** | String-heavy; JS JIT ~2.8× faster than WASM boundary |
 | `mn_decode` | `mnemonic` | **plain JS** | Same as above |
 | `mn_random` | `mnemonic` | **plain JS** | Thin wrapper over `window.crypto` |
+| `rand32` / `rand16` / `rand8` | `random` | **plain JS** | Fixed-size wrappers over `mn_random` |
+| `random_scalar` | `random` | **mixed** | `mn_random` + WASM `sc_reduce32` |
+| `random_keypair` / `underive_public_key` | `cn` | **mixed** | `random` + `cnutils` + `crypto` WASM |
 | `hextobin`, `encode_varint`, `ge_add`, … | `cnutils` | **plain JS** (+ `nacl.ll`) | `CnUtils` helpers |
 | `cn_fast_hash` | `cnutils` | **plain JS** (`tiers/sha3.js`) | Same Keccak as wallet; faster than WASM boundary for typical hex |
 | `cn_fast_hash` | `crypto` | **Rust WASM** | Same digest; use when already in WASM-only path |
@@ -250,7 +300,7 @@ cargo test --workspace   # 29 tests: 16 crypto + 6 cypher + 7 mnemonic
 
 ## JS integration tests
 
-Browser suite (`test/`): mnemonic, **cnutils**, crypto, cypher.
+Browser suite (`test/`): mnemonic, **cnutils**, crypto, **cn**, cypher.
 
 ```sh
 npm run build              # src/wasm for cnutils + package consumers
@@ -280,10 +330,12 @@ concealjs/
 │   └── cypher/             # chacha8 / chacha12 stream ciphers
 │
 ├── src/                    # public JS/TS API layer (the npm package)
-│   ├── index.js            # re-exports: mnemonic, cnutils, crypto, cypher
+│   ├── index.js            # re-exports: mnemonic, random, cn, cnutils, crypto, cypher
 │   ├── index.d.ts
 │   ├── js/
 │   │   ├── mnemonic.js
+│   │   ├── random.js       # rand32 / rand16 / rand8 / random_scalar
+│   │   ├── cn.js           # random_keypair, underive_public_key
 │   │   ├── cnutils.js      # CnUtils port
 │   │   └── tiers/          # biginteger.js, nacl.js, sha3.js
 │   └── wasm/               # wasm-pack bundler outputs (git-ignored)
@@ -293,6 +345,7 @@ concealjs/
 └── test/                   # browser integration tests
     ├── test-all.js
     ├── test-cnutils.js
+    ├── test-cn.js
     ├── test-crypto.js
     ├── test-mnemonic.js
     └── wasm/               # web-target WASM for test page (git-ignored)

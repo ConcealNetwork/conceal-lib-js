@@ -12,6 +12,7 @@
 //! | `scalar` | `sc_reduce32`, `sc_add`, `sc_sub`, `sc_mulsub`, `sc_0`, `sc_check` |
 //! | `ge` | `ge_scalarmult_base`, `ge_scalarmult`, `ge_mul8`, `ge_add`, `ge_tobytes` |
 //! | `keys` | `generate_keys`, `generate_key_derivation`, `derive_public_key`, `derive_secret_key`, `hash_to_scalar`, `generate_key_image` |
+//! | `signature` | `generate_signature`, `generate_ring_signature` |
 //! | `address` | `create_address`, `decode_address` |
 //! | `base58` | CryptoNote Base58 encode/decode |
 //! | `utils` | hex conversion helpers |
@@ -22,7 +23,9 @@ mod ffi;
 mod ge;
 mod keccak;
 mod keys;
+mod rng;
 mod scalar;
+mod signature;
 mod utils;
 
 use utils::{bytes_to_hex, hex_to_bytes, hex_to_bytes32};
@@ -222,7 +225,11 @@ pub fn generate_key_derivation(pub_hex: &str, sec_hex: &str) -> Result<String, J
 /// derive_public_key: base_pub + derivation_to_scalar(derivation, index) × B.
 /// Matches `CnNativeBride.derive_public_key(derivation, index, pub)`.
 #[wasm_bindgen]
-pub fn derive_public_key(derivation_hex: &str, out_index: u32, base_pub_hex: &str) -> Result<String, JsValue> {
+pub fn derive_public_key(
+    derivation_hex: &str,
+    out_index: u32,
+    base_pub_hex: &str,
+) -> Result<String, JsValue> {
     let derivation = hex_to_bytes32(derivation_hex).map_err(|e| JsValue::from_str(&e))?;
     let base_pub = hex_to_bytes32(base_pub_hex).map_err(|e| JsValue::from_str(&e))?;
     keys::derive_public_key_bytes(&derivation, out_index, &base_pub)
@@ -233,21 +240,62 @@ pub fn derive_public_key(derivation_hex: &str, out_index: u32, base_pub_hex: &st
 /// derive_secret_key: sc_add(base_sec, derivation_to_scalar(derivation, index)).
 /// Matches `CnNativeBride.derive_secret_key(derivation, index, sec)`.
 #[wasm_bindgen]
-pub fn derive_secret_key(derivation_hex: &str, out_index: u32, base_sec_hex: &str) -> Result<String, JsValue> {
+pub fn derive_secret_key(
+    derivation_hex: &str,
+    out_index: u32,
+    base_sec_hex: &str,
+) -> Result<String, JsValue> {
     let derivation = hex_to_bytes32(derivation_hex).map_err(|e| JsValue::from_str(&e))?;
     let base_sec = hex_to_bytes32(base_sec_hex).map_err(|e| JsValue::from_str(&e))?;
-    Ok(bytes_to_hex(&keys::derive_secret_key_bytes(&derivation, out_index, &base_sec)))
+    Ok(bytes_to_hex(&keys::derive_secret_key_bytes(
+        &derivation,
+        out_index,
+        &base_sec,
+    )))
 }
 
-/// hash_to_ec: cn_fast_hash(pub) → ge_fromfe → ge_mul8, 32-byte compressed point.
-/// Matches `CnNativeBride.hash_to_ec_2(pub)` in Cn.ts.
+/// Maps a public key to an Edwards point: `ge_mul8(ge_fromfe(cn_fast_hash(pub)))`.
+///
+/// # Parameters
+/// - `pub_hex` — 64-char hex (32-byte public key).
+///
+/// # Returns
+/// 320-char hex: 160-byte `ge_p3` (`STRUCT_SIZES.GE_P3` in the web wallet).
+///
+/// # When to use
+/// Ring signatures and other code that passes a **`ge_p3` buffer** into `ge_scalarmult`
+/// (wallet `CnUtils.hash_to_ec` / `CnNativeBride.hash_to_ec`).
 #[wasm_bindgen]
-pub fn hash_to_ec(pub_hex: &str) -> Result<String, JsValue> {
+pub fn hash_to_ec160(pub_hex: &str) -> Result<String, JsValue> {
+    let pub_key = hex_to_bytes32(pub_hex).map_err(|e| JsValue::from_str(&e))?;
+    Ok(bytes_to_hex(&ffi::hash_to_ec_p3_bytes(&pub_key)))
+}
+
+/// Same curve map as [`hash_to_ec160`], but returns a **32-byte compressed** point.
+///
+/// # Parameters
+/// - `pub_hex` — 64-char hex (32-byte public key).
+///
+/// # Returns
+/// 64-char hex compressed Edwards point (`ge_p3_tobytes` of the internal `ge_p3`).
+///
+/// # When to use
+/// `ge_double_scalarmult_postcomp_vartime`, key-image helpers, and any API that expects
+/// a normal 32-byte point (wallet `CnNativeBride.hash_to_ec_2`).
+#[wasm_bindgen]
+pub fn hash_to_ec32(pub_hex: &str) -> Result<String, JsValue> {
     let pub_key = hex_to_bytes32(pub_hex).map_err(|e| JsValue::from_str(&e))?;
     Ok(bytes_to_hex(&ffi::hash_to_ec_bytes(&pub_key)))
 }
 
-/// Computes a CryptoNote key image: `sec × hash_to_ec(pub)`.
+/// Deprecated alias for [`hash_to_ec32`]. Prefer `hash_to_ec32` or `hash_to_ec160` explicitly.
+#[wasm_bindgen]
+pub fn hash_to_ec(pub_hex: &str) -> Result<String, JsValue> {
+    hash_to_ec32(pub_hex)
+}
+
+/// Computes a CryptoNote key image: `sec × hash_to_ec(pub)` using the internal `ge_p3`
+/// from [`hash_to_ec160`], then compresses to 32 bytes.
 ///
 /// Port of conceal-core `crypto_ops::generate_key_image`.
 /// Wallet equivalent: `CnNativeBride.generate_key_image_2(pub, sec)`.
@@ -264,6 +312,96 @@ pub fn hash_to_ec(pub_hex: &str) -> Result<String, JsValue> {
 #[wasm_bindgen]
 pub fn generate_key_image(pub_hex: &str, sec_hex: &str) -> Result<String, JsValue> {
     keys::generate_key_image_hex(pub_hex, sec_hex).map_err(|e| JsValue::from_str(&e))
+}
+
+// ---------------------------------------------------------------------------
+// Signatures (crypto.cpp)
+// ---------------------------------------------------------------------------
+
+/// Standard CryptoNote signature (`c || r`), 128-char hex.
+///
+/// Port of `crypto::generate_signature`. `prefix_hash` is typically a transaction
+/// or block hash; `pub` / `sec` must be a matching key pair.
+///
+/// # Parameters
+/// - `prefix_hash_hex` — 64-char hex (32-byte hash).
+/// - `pub_hex` — 64-char hex spend/output public key.
+/// - `sec_hex` — 64-char hex secret key (canonical scalar).
+///
+/// # Returns
+/// 128-char hex signature.
+#[wasm_bindgen]
+pub fn generate_signature(
+    prefix_hash_hex: &str,
+    pub_hex: &str,
+    sec_hex: &str,
+) -> Result<String, JsValue> {
+    signature::generate_signature_hex(prefix_hash_hex, pub_hex, sec_hex)
+        .map_err(|e| JsValue::from_str(&e))
+}
+
+/// Ring signature for one input: one 128-char hex signature per ring member.
+///
+/// Port of `crypto::generate_ring_signature`. `key_image` must match `sec` at
+/// `sec_index` (`generate_key_image(pub, sec)`). `pubs_hex` is the ring public keys.
+///
+/// # Parameters
+/// - `prefix_hash_hex` — 64-char hex message hash.
+/// - `key_image_hex` — 64-char hex key image.
+/// - `pubs_hex` — array of 64-char hex public keys (ring size = length).
+/// - `sec_hex` — 64-char hex secret for the real input at `sec_index`.
+/// - `sec_index` — index of the signing key in `pubs_hex`.
+///
+/// # Returns
+/// Array of 128-char hex signatures (length = ring size).
+#[wasm_bindgen]
+pub fn generate_ring_signature(
+    prefix_hash_hex: &str,
+    key_image_hex: &str,
+    pubs_hex: Vec<String>,
+    sec_hex: &str,
+    sec_index: u32,
+) -> Result<js_sys::Array, JsValue> {
+    let sigs = signature::generate_ring_signature_hex(
+        prefix_hash_hex,
+        key_image_hex,
+        &pubs_hex,
+        sec_hex,
+        sec_index as usize,
+    )
+    .map_err(|e| JsValue::from_str(&e))?;
+    let arr = js_sys::Array::new();
+    for s in sigs {
+        arr.push(&JsValue::from_str(&s));
+    }
+    Ok(arr)
+}
+
+/// Verifies a standard CryptoNote signature.
+///
+/// Port of `crypto::check_signature`.
+#[wasm_bindgen]
+pub fn check_signature(
+    prefix_hash_hex: &str,
+    pub_hex: &str,
+    sig_hex: &str,
+) -> Result<bool, JsValue> {
+    signature::check_signature_hex(prefix_hash_hex, pub_hex, sig_hex)
+        .map_err(|e| JsValue::from_str(&e))
+}
+
+/// Verifies a ring signature.
+///
+/// Port of `crypto::check_ring_signature`.
+#[wasm_bindgen]
+pub fn check_ring_signature(
+    prefix_hash_hex: &str,
+    key_image_hex: &str,
+    pubs_hex: Vec<String>,
+    sigs_hex: Vec<String>,
+) -> Result<bool, JsValue> {
+    signature::check_ring_signature_hex(prefix_hash_hex, key_image_hex, &pubs_hex, &sigs_hex)
+        .map_err(|e| JsValue::from_str(&e))
 }
 
 // ---------------------------------------------------------------------------
@@ -296,8 +434,7 @@ pub fn create_address(seed_hex: &str) -> Result<JsValue, JsValue> {
 /// Matches `Cn.decode_address(address)`.
 #[wasm_bindgen]
 pub fn decode_address(address: &str) -> Result<JsValue, JsValue> {
-    let (spend, view) =
-        address::decode_address_str(address).map_err(|e| JsValue::from_str(&e))?;
+    let (spend, view) = address::decode_address_str(address).map_err(|e| JsValue::from_str(&e))?;
     to_js_value(&DecodedAddressJs {
         spend: bytes_to_hex(&spend),
         view: bytes_to_hex(&view),

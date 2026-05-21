@@ -23,7 +23,10 @@ fn chacha8_inner(key: &[u8], nonce: &[u8], data: &[u8]) -> Result<Vec<u8>, Strin
         return Err(format!("chacha8: key must be 32 bytes, got {}", key.len()));
     }
     if nonce.len() != 12 {
-        return Err(format!("chacha8: nonce must be 12 bytes, got {}", nonce.len()));
+        return Err(format!(
+            "chacha8: nonce must be 12 bytes, got {}",
+            nonce.len()
+        ));
     }
     let key_arr: &[u8; 32] = key.try_into().unwrap();
     let nonce_arr: &[u8; 12] = nonce.try_into().unwrap();
@@ -38,7 +41,10 @@ fn chacha12_inner(key: &[u8], nonce: &[u8], data: &[u8]) -> Result<Vec<u8>, Stri
         return Err(format!("chacha12: key must be 32 bytes, got {}", key.len()));
     }
     if nonce.len() != 12 {
-        return Err(format!("chacha12: nonce must be 12 bytes, got {}", nonce.len()));
+        return Err(format!(
+            "chacha12: nonce must be 12 bytes, got {}",
+            nonce.len()
+        ));
     }
     let key_arr: &[u8; 32] = key.try_into().unwrap();
     let nonce_arr: &[u8; 12] = nonce.try_into().unwrap();
@@ -124,7 +130,10 @@ mod tests {
         let data = b"test data for cipher comparison";
         let c8 = chacha8_inner(&key, &nonce, data).unwrap();
         let c12 = chacha12_inner(&key, &nonce, data).unwrap();
-        assert_ne!(c8, c12, "ChaCha8 and ChaCha12 must produce different keystreams");
+        assert_ne!(
+            c8, c12,
+            "ChaCha8 and ChaCha12 must produce different keystreams"
+        );
     }
 
     /// Known-vector: ChaCha8 with all-zero key/nonce must produce a non-zero keystream.

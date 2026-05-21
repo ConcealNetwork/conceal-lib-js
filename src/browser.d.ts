@@ -4,5 +4,8 @@
 export function init(): Promise<void>;
 
 export * as mnemonic from "./js/mnemonic";
+export * as cnutils from "./js/cnutils";
+export * as random from "./js/random";
+export * as cn from "./js/cn";
 export * as crypto from "./wasm-browser/crypto/crypto";
 export * as cypher from "./wasm-browser/cypher/cypher";

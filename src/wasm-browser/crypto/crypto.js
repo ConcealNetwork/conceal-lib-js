@@ -1,6 +1,55 @@
 /* @ts-self-types="./crypto.d.ts" */
 
 /**
+ * Verifies a ring signature.
+ *
+ * Port of `crypto::check_ring_signature`.
+ * @param {string} prefix_hash_hex
+ * @param {string} key_image_hex
+ * @param {string[]} pubs_hex
+ * @param {string[]} sigs_hex
+ * @returns {boolean}
+ */
+export function check_ring_signature(prefix_hash_hex, key_image_hex, pubs_hex, sigs_hex) {
+    const ptr0 = passStringToWasm0(prefix_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(key_image_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArrayJsValueToWasm0(pubs_hex, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passArrayJsValueToWasm0(sigs_hex, wasm.__wbindgen_malloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.check_ring_signature(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0] !== 0;
+}
+
+/**
+ * Verifies a standard CryptoNote signature.
+ *
+ * Port of `crypto::check_signature`.
+ * @param {string} prefix_hash_hex
+ * @param {string} pub_hex
+ * @param {string} sig_hex
+ * @returns {boolean}
+ */
+export function check_signature(prefix_hash_hex, pub_hex, sig_hex) {
+    const ptr0 = passStringToWasm0(prefix_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(sig_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ret = wasm.check_signature(ptr0, len0, ptr1, len1, ptr2, len2);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0] !== 0;
+}
+
+/**
  * cn_fast_hash: Keccak-256 of hex-decoded input.
  * Matches `CnUtils.cn_fast_hash(hex)` in Cn.ts.
  * @param {string} data_hex
@@ -343,7 +392,8 @@ export function generate_key_derivation(pub_hex, sec_hex) {
 }
 
 /**
- * Computes a CryptoNote key image: `sec × hash_to_ec(pub)`.
+ * Computes a CryptoNote key image: `sec × hash_to_ec(pub)` using the internal `ge_p3`
+ * from [`hash_to_ec160`], then compresses to 32 bytes.
  *
  * Port of conceal-core `crypto_ops::generate_key_image`.
  * Wallet equivalent: `CnNativeBride.generate_key_image_2(pub, sec)`.
@@ -401,8 +451,88 @@ export function generate_keys(seed_hex) {
 }
 
 /**
- * hash_to_ec: cn_fast_hash(pub) → ge_fromfe → ge_mul8, 32-byte compressed point.
- * Matches `CnNativeBride.hash_to_ec_2(pub)` in Cn.ts.
+ * Ring signature for one input: one 128-char hex signature per ring member.
+ *
+ * Port of `crypto::generate_ring_signature`. `key_image` must match `sec` at
+ * `sec_index` (`generate_key_image(pub, sec)`). `pubs_hex` is the ring public keys.
+ *
+ * # Parameters
+ * - `prefix_hash_hex` — 64-char hex message hash.
+ * - `key_image_hex` — 64-char hex key image.
+ * - `pubs_hex` — array of 64-char hex public keys (ring size = length).
+ * - `sec_hex` — 64-char hex secret for the real input at `sec_index`.
+ * - `sec_index` — index of the signing key in `pubs_hex`.
+ *
+ * # Returns
+ * Array of 128-char hex signatures (length = ring size).
+ * @param {string} prefix_hash_hex
+ * @param {string} key_image_hex
+ * @param {string[]} pubs_hex
+ * @param {string} sec_hex
+ * @param {number} sec_index
+ * @returns {Array<any>}
+ */
+export function generate_ring_signature(prefix_hash_hex, key_image_hex, pubs_hex, sec_hex, sec_index) {
+    const ptr0 = passStringToWasm0(prefix_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(key_image_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArrayJsValueToWasm0(pubs_hex, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(sec_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.generate_ring_signature(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, sec_index);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * Standard CryptoNote signature (`c || r`), 128-char hex.
+ *
+ * Port of `crypto::generate_signature`. `prefix_hash` is typically a transaction
+ * or block hash; `pub` / `sec` must be a matching key pair.
+ *
+ * # Parameters
+ * - `prefix_hash_hex` — 64-char hex (32-byte hash).
+ * - `pub_hex` — 64-char hex spend/output public key.
+ * - `sec_hex` — 64-char hex secret key (canonical scalar).
+ *
+ * # Returns
+ * 128-char hex signature.
+ * @param {string} prefix_hash_hex
+ * @param {string} pub_hex
+ * @param {string} sec_hex
+ * @returns {string}
+ */
+export function generate_signature(prefix_hash_hex, pub_hex, sec_hex) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passStringToWasm0(prefix_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(sec_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.generate_signature(ptr0, len0, ptr1, len1, ptr2, len2);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+}
+
+/**
+ * Deprecated alias for [`hash_to_ec32`]. Prefer `hash_to_ec32` or `hash_to_ec160` explicitly.
  * @param {string} pub_hex
  * @returns {string}
  */
@@ -413,6 +543,78 @@ export function hash_to_ec(pub_hex) {
         const ptr0 = passStringToWasm0(pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.hash_to_ec(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Maps a public key to an Edwards point: `ge_mul8(ge_fromfe(cn_fast_hash(pub)))`.
+ *
+ * # Parameters
+ * - `pub_hex` — 64-char hex (32-byte public key).
+ *
+ * # Returns
+ * 320-char hex: 160-byte `ge_p3` (`STRUCT_SIZES.GE_P3` in the web wallet).
+ *
+ * # When to use
+ * Ring signatures and other code that passes a **`ge_p3` buffer** into `ge_scalarmult`
+ * (wallet `CnUtils.hash_to_ec` / `CnNativeBride.hash_to_ec`).
+ * @param {string} pub_hex
+ * @returns {string}
+ */
+export function hash_to_ec160(pub_hex) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.hash_to_ec160(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Same curve map as [`hash_to_ec160`], but returns a **32-byte compressed** point.
+ *
+ * # Parameters
+ * - `pub_hex` — 64-char hex (32-byte public key).
+ *
+ * # Returns
+ * 64-char hex compressed Edwards point (`ge_p3_tobytes` of the internal `ge_p3`).
+ *
+ * # When to use
+ * `ge_double_scalarmult_postcomp_vartime`, key-image helpers, and any API that expects
+ * a normal 32-byte point (wallet `CnNativeBride.hash_to_ec_2`).
+ * @param {string} pub_hex
+ * @returns {string}
+ */
+export function hash_to_ec32(pub_hex) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.hash_to_ec32(ptr0, len0);
         var ptr2 = ret[0];
         var len2 = ret[1];
         if (ret[3]) {
@@ -611,17 +813,120 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
+        __wbg___wbindgen_is_function_5cd60d5cf78b4eef: function(arg0) {
+            const ret = typeof(arg0) === 'function';
+            return ret;
+        },
+        __wbg___wbindgen_is_object_b4593df85baada48: function(arg0) {
+            const val = arg0;
+            const ret = typeof(val) === 'object' && val !== null;
+            return ret;
+        },
+        __wbg___wbindgen_is_string_dde0fd9020db4434: function(arg0) {
+            const ret = typeof(arg0) === 'string';
+            return ret;
+        },
+        __wbg___wbindgen_is_undefined_35bb9f4c7fd651d5: function(arg0) {
+            const ret = arg0 === undefined;
+            return ret;
+        },
+        __wbg___wbindgen_string_get_d109740c0d18f4d7: function(arg0, arg1) {
+            const obj = arg1;
+            const ret = typeof(obj) === 'string' ? obj : undefined;
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
         __wbg___wbindgen_throw_9c31b086c2b26051: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
+        },
+        __wbg_call_dfde26266607c996: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = arg0.call(arg1, arg2);
+            return ret;
+        }, arguments); },
+        __wbg_crypto_38df2bab126b63dc: function(arg0) {
+            const ret = arg0.crypto;
+            return ret;
+        },
+        __wbg_getRandomValues_c44a50d8cfdaebeb: function() { return handleError(function (arg0, arg1) {
+            arg0.getRandomValues(arg1);
+        }, arguments); },
+        __wbg_length_56fcd3e2b7e0299d: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
+        __wbg_msCrypto_bd5a034af96bcba6: function(arg0) {
+            const ret = arg0.msCrypto;
+            return ret;
         },
         __wbg_new_02d162bc6cf02f60: function() {
             const ret = new Object();
             return ret;
         },
+        __wbg_new_310879b66b6e95e1: function() {
+            const ret = new Array();
+            return ret;
+        },
+        __wbg_new_with_length_99887c91eae4abab: function(arg0) {
+            const ret = new Uint8Array(arg0 >>> 0);
+            return ret;
+        },
+        __wbg_node_84ea875411254db1: function(arg0) {
+            const ret = arg0.node;
+            return ret;
+        },
+        __wbg_process_44c7a14e11e9f69e: function(arg0) {
+            const ret = arg0.process;
+            return ret;
+        },
+        __wbg_prototypesetcall_5f9bdc8d75e07276: function(arg0, arg1, arg2) {
+            Uint8Array.prototype.set.call(getArrayU8FromWasm0(arg0, arg1), arg2);
+        },
+        __wbg_push_b77c476b01548d0a: function(arg0, arg1) {
+            const ret = arg0.push(arg1);
+            return ret;
+        },
+        __wbg_randomFillSync_6c25eac9869eb53c: function() { return handleError(function (arg0, arg1) {
+            arg0.randomFillSync(arg1);
+        }, arguments); },
+        __wbg_require_b4edbdcf3e2a1ef0: function() { return handleError(function () {
+            const ret = module.require;
+            return ret;
+        }, arguments); },
         __wbg_set_6be42768c690e380: function(arg0, arg1, arg2) {
             arg0[arg1] = arg2;
         },
+        __wbg_static_accessor_GLOBAL_THIS_02344c9b09eb08a9: function() {
+            const ret = typeof globalThis === 'undefined' ? null : globalThis;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_GLOBAL_ac6d4ac874d5cd54: function() {
+            const ret = typeof global === 'undefined' ? null : global;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_SELF_9b2406c23aeb2023: function() {
+            const ret = typeof self === 'undefined' ? null : self;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_WINDOW_b34d2126934e16ba: function() {
+            const ret = typeof window === 'undefined' ? null : window;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_subarray_7c6a0da8f3b4a1ba: function(arg0, arg1, arg2) {
+            const ret = arg0.subarray(arg1 >>> 0, arg2 >>> 0);
+            return ret;
+        },
+        __wbg_versions_276b2795b1c6a219: function(arg0) {
+            const ret = arg0.versions;
+            return ret;
+        },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(Slice(U8)) -> NamedExternref("Uint8Array")`.
+            const ret = getArrayU8FromWasm0(arg0, arg1);
+            return ret;
+        },
+        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
@@ -642,6 +947,17 @@ function __wbg_get_imports() {
     };
 }
 
+function addToExternrefTable0(obj) {
+    const idx = wasm.__externref_table_alloc();
+    wasm.__wbindgen_externrefs.set(idx, obj);
+    return idx;
+}
+
+function getArrayU8FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
+}
+
 let cachedDataViewMemory0 = null;
 function getDataViewMemory0() {
     if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
@@ -660,6 +976,29 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        const idx = addToExternrefTable0(e);
+        wasm.__wbindgen_exn_store(idx);
+    }
+}
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
+function passArrayJsValueToWasm0(array, malloc) {
+    const ptr = malloc(array.length * 4, 4) >>> 0;
+    for (let i = 0; i < array.length; i++) {
+        const add = addToExternrefTable0(array[i]);
+        getDataViewMemory0().setUint32(ptr + 4 * i, add, true);
+    }
+    WASM_VECTOR_LEN = array.length;
+    return ptr;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {

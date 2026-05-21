@@ -64,8 +64,7 @@ mod tests {
     use crate::utils::bytes_to_hex;
 
     /// The basepoint compressed y-coordinate for Ed25519.
-    const BASEPOINT_HEX: &str =
-        "5866666666666666666666666666666666666666666666666666666666666666";
+    const BASEPOINT_HEX: &str = "5866666666666666666666666666666666666666666666666666666666666666";
 
     #[test]
     fn basepoint_scalar_one() {
@@ -89,8 +88,8 @@ mod tests {
 
     /// 32 zero bytes compress a valid Edwards point; off-curve encodings must fail.
     const INVALID_COMPRESSED: [u8; 32] = [
-        0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
+        0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0,
     ];
 
     #[test]

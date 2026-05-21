@@ -18,6 +18,9 @@
  * - **`cypher`** — ChaCha8 and ChaCha12 stream ciphers (32-byte key,
  *   12-byte nonce).  Compiled from Rust to WASM.
  *
+ * - **`cn`** — `random_keypair`, `underive_public_key` (JS + WASM).
+ * - **`random`** — `rand32`, `rand16`, `rand8` (browser entropy via `mnemonic`).
+ *
  * ## Runtimes
  *
  * - **Node / Vite / Webpack** — import from `"concealjs"` (this file). WASM is bundled;
@@ -37,5 +40,7 @@
 
 export * as mnemonic from "./js/mnemonic.js";
 export * as cnutils  from "./js/cnutils.js";
+export * as random   from "./js/random.js";
+export * as cn       from "./js/cn.js";
 export * as crypto   from "./wasm/crypto/crypto.js";
 export * as cypher   from "./wasm/cypher/cypher.js";

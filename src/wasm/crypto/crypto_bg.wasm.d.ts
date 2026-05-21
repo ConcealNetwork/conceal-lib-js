@@ -1,6 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const check_ring_signature: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number];
+export const check_signature: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
 export const cn_fast_hash: (a: number, b: number) => [number, number, number, number];
 export const create_address: (a: number, b: number) => [number, number, number];
 export const decode_address: (a: number, b: number) => [number, number, number];
@@ -15,7 +17,10 @@ export const ge_scalarmult_base: (a: number, b: number) => [number, number, numb
 export const generate_key_derivation: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const generate_key_image: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const generate_keys: (a: number, b: number) => [number, number, number];
+export const generate_ring_signature: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
+export const generate_signature: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
 export const hash_to_ec: (a: number, b: number) => [number, number, number, number];
+export const hash_to_ec160: (a: number, b: number) => [number, number, number, number];
 export const hash_to_scalar: (a: number, b: number) => [number, number, number, number];
 export const sc_0: () => [number, number];
 export const sc_add: (a: number, b: number, c: number, d: number) => [number, number, number, number];
@@ -24,8 +29,11 @@ export const sc_mulsub: (a: number, b: number, c: number, d: number, e: number, 
 export const sc_reduce32: (a: number, b: number) => [number, number, number, number];
 export const sc_sub: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const ge_tobytes: (a: number, b: number) => [number, number, number, number];
+export const hash_to_ec32: (a: number, b: number) => [number, number, number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_exn_store: (a: number) => void;
+export const __externref_table_alloc: () => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __externref_table_dealloc: (a: number) => void;
 export const __wbindgen_free: (a: number, b: number, c: number) => void;

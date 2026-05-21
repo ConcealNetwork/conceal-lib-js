@@ -39,13 +39,7 @@ pub fn pubkeys_to_string(spend_pub: &[u8; 32], view_pub: &[u8; 32]) -> String {
 /// Returns (spend_sec, spend_pub, view_sec, view_pub, public_addr).
 pub fn create_address_from_seed(
     seed: &[u8; 32],
-) -> (
-    [u8; 32],
-    [u8; 32],
-    [u8; 32],
-    [u8; 32],
-    String,
-) {
+) -> ([u8; 32], [u8; 32], [u8; 32], [u8; 32], String) {
     let (spend_sec, spend_pub) = keys::generate_keys_bytes(seed);
     let second = keccak::keccak256_bytes(&spend_sec);
     let (view_sec, view_pub) = keys::generate_keys_bytes(&second);

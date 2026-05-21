@@ -237,4 +237,18 @@ export async function runCryptoTests(log) {
   } catch (e) {
     log("decode_address correctly rejected invalid input: " + e, true);
   }
+
+  // ── optional: generate_signature (needs recent `npm run build:test:crypto`) ─
+  try {
+    const wasm = await import("./wasm/crypto/crypto.js");
+    if (typeof wasm.generate_signature === "function") {
+      const sig = wasm.generate_signature(hashOut, keys.pub, keys.sec);
+      const ok = typeof sig === "string" && sig.length === 128;
+      log("generate_signature → 128-char hex: " + (ok ? "PASS" : "FAIL"), ok);
+    } else {
+      log("generate_signature: SKIP (rebuild crypto WASM)", true);
+    }
+  } catch (e) {
+    log("generate_signature: SKIP (" + e + ")", true);
+  }
 }

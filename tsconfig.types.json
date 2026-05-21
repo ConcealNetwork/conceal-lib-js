@@ -13,9 +13,12 @@
   },
   "include": [
     "src/js/mnemonic.js",
-    "src/js/cnutils.js"
+    "src/js/cnutils.js",
+    "src/js/random.js",
+    "src/js/cn.js"
   ],
   "exclude": [
-    "src/wasm"
+    "src/wasm",
+    "src/**/*.d.ts"
   ]
 }

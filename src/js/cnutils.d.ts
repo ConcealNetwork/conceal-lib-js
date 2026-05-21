@@ -126,11 +126,13 @@ export function padLeft(str: string, len: number, char: string): string;
  */
 export function ge_double_scalarmult_base_vartime(c: string, P: string, r: string): string;
 /**
- * @param {string} r
- * @param {string} P
- * @param {string} c
- * @param {string} I
- * @returns {string}
+ * `r·hash_to_ec32(P) + c·I` (wallet postcomp path; needs 32-byte compressed `Pb`).
+ *
+ * @param {string} r - 64-char hex scalar.
+ * @param {string} P - 64-char hex public key (compressed point input to `hash_to_ec32`).
+ * @param {string} c - 64-char hex scalar.
+ * @param {string} I - 64-char hex point.
+ * @returns {string} 64-char hex point.
  */
 export function ge_double_scalarmult_postcomp_vartime(r: string, P: string, c: string, I: string): string;
 /**

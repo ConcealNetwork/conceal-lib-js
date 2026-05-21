@@ -150,18 +150,33 @@ export async function runCnutilsTests(log) {
     log("rct ecdh round-trip failed: " + e, false);
   }
 
-  // ── optional: hash_to_ec + postcomp (needs recent crypto WASM build) ──────
-  if (typeof wasmCrypto.hash_to_ec === "function") {
+  // ── hash_to_ec32 / hash_to_ec160 (needs recent crypto WASM build) ─────────
+  if (typeof wasmCrypto.hash_to_ec32 === "function") {
     try {
-      const Pb = wasmCrypto.hash_to_ec(SPEND_PUB);
+      const Pb = wasmCrypto.hash_to_ec32(SPEND_PUB);
       const ok =
         typeof Pb === "string" && Pb.length === 64 && cnutils.valid_hex(Pb);
-      log("hash_to_ec → 64-char point: " + (ok ? "PASS" : "FAIL"), ok);
+      log("hash_to_ec32 → 64-char point: " + (ok ? "PASS" : "FAIL"), ok);
     } catch (e) {
-      log("hash_to_ec failed: " + e, false);
+      log("hash_to_ec32 failed: " + e, false);
     }
   } else {
-    log("hash_to_ec: SKIP (run npm run build:crypto)", true);
+    log("hash_to_ec32: SKIP (run npm run build:crypto)", true);
+  }
+
+  if (typeof wasmCrypto.hash_to_ec160 === "function") {
+    try {
+      const p3 = wasmCrypto.hash_to_ec160(SPEND_PUB);
+      const ok =
+        typeof p3 === "string" &&
+        p3.length === cnutils.STRUCT_SIZES.GE_P3 * 2 &&
+        cnutils.valid_hex(p3);
+      log("hash_to_ec160 → GE_P3 hex: " + (ok ? "PASS" : "FAIL"), ok);
+    } catch (e) {
+      log("hash_to_ec160 failed: " + e, false);
+    }
+  } else {
+    log("hash_to_ec160: SKIP (run npm run build:crypto)", true);
   }
 
   try {

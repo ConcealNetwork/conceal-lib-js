@@ -2,6 +2,20 @@
 /* eslint-disable */
 
 /**
+ * Verifies a ring signature.
+ *
+ * Port of `crypto::check_ring_signature`.
+ */
+export function check_ring_signature(prefix_hash_hex: string, key_image_hex: string, pubs_hex: string[], sigs_hex: string[]): boolean;
+
+/**
+ * Verifies a standard CryptoNote signature.
+ *
+ * Port of `crypto::check_signature`.
+ */
+export function check_signature(prefix_hash_hex: string, pub_hex: string, sig_hex: string): boolean;
+
+/**
  * cn_fast_hash: Keccak-256 of hex-decoded input.
  * Matches `CnUtils.cn_fast_hash(hex)` in Cn.ts.
  */
@@ -76,7 +90,8 @@ export function ge_tobytes(point_hex: string): string;
 export function generate_key_derivation(pub_hex: string, sec_hex: string): string;
 
 /**
- * Computes a CryptoNote key image: `sec × hash_to_ec(pub)`.
+ * Computes a CryptoNote key image: `sec × hash_to_ec(pub)` using the internal `ge_p3`
+ * from [`hash_to_ec160`], then compresses to 32 bytes.
  *
  * Port of conceal-core `crypto_ops::generate_key_image`.
  * Wallet equivalent: `CnNativeBride.generate_key_image_2(pub, sec)`.
@@ -100,10 +115,73 @@ export function generate_key_image(pub_hex: string, sec_hex: string): string;
 export function generate_keys(seed_hex: string): any;
 
 /**
- * hash_to_ec: cn_fast_hash(pub) → ge_fromfe → ge_mul8, 32-byte compressed point.
- * Matches `CnNativeBride.hash_to_ec_2(pub)` in Cn.ts.
+ * Ring signature for one input: one 128-char hex signature per ring member.
+ *
+ * Port of `crypto::generate_ring_signature`. `key_image` must match `sec` at
+ * `sec_index` (`generate_key_image(pub, sec)`). `pubs_hex` is the ring public keys.
+ *
+ * # Parameters
+ * - `prefix_hash_hex` — 64-char hex message hash.
+ * - `key_image_hex` — 64-char hex key image.
+ * - `pubs_hex` — array of 64-char hex public keys (ring size = length).
+ * - `sec_hex` — 64-char hex secret for the real input at `sec_index`.
+ * - `sec_index` — index of the signing key in `pubs_hex`.
+ *
+ * # Returns
+ * Array of 128-char hex signatures (length = ring size).
+ */
+export function generate_ring_signature(prefix_hash_hex: string, key_image_hex: string, pubs_hex: string[], sec_hex: string, sec_index: number): Array<any>;
+
+/**
+ * Standard CryptoNote signature (`c || r`), 128-char hex.
+ *
+ * Port of `crypto::generate_signature`. `prefix_hash` is typically a transaction
+ * or block hash; `pub` / `sec` must be a matching key pair.
+ *
+ * # Parameters
+ * - `prefix_hash_hex` — 64-char hex (32-byte hash).
+ * - `pub_hex` — 64-char hex spend/output public key.
+ * - `sec_hex` — 64-char hex secret key (canonical scalar).
+ *
+ * # Returns
+ * 128-char hex signature.
+ */
+export function generate_signature(prefix_hash_hex: string, pub_hex: string, sec_hex: string): string;
+
+/**
+ * Deprecated alias for [`hash_to_ec32`]. Prefer `hash_to_ec32` or `hash_to_ec160` explicitly.
  */
 export function hash_to_ec(pub_hex: string): string;
+
+/**
+ * Maps a public key to an Edwards point: `ge_mul8(ge_fromfe(cn_fast_hash(pub)))`.
+ *
+ * # Parameters
+ * - `pub_hex` — 64-char hex (32-byte public key).
+ *
+ * # Returns
+ * 320-char hex: 160-byte `ge_p3` (`STRUCT_SIZES.GE_P3` in the web wallet).
+ *
+ * # When to use
+ * Ring signatures and other code that passes a **`ge_p3` buffer** into `ge_scalarmult`
+ * (wallet `CnUtils.hash_to_ec` / `CnNativeBride.hash_to_ec`).
+ */
+export function hash_to_ec160(pub_hex: string): string;
+
+/**
+ * Same curve map as [`hash_to_ec160`], but returns a **32-byte compressed** point.
+ *
+ * # Parameters
+ * - `pub_hex` — 64-char hex (32-byte public key).
+ *
+ * # Returns
+ * 64-char hex compressed Edwards point (`ge_p3_tobytes` of the internal `ge_p3`).
+ *
+ * # When to use
+ * `ge_double_scalarmult_postcomp_vartime`, key-image helpers, and any API that expects
+ * a normal 32-byte point (wallet `CnNativeBride.hash_to_ec_2`).
+ */
+export function hash_to_ec32(pub_hex: string): string;
 
 /**
  * hash_to_scalar: cn_fast_hash then sc_reduce32.

@@ -3,7 +3,7 @@
  *
  * Pure hex/integer helpers and `cn_fast_hash` (Keccak-256 via `tiers/sha3.js`) run in
  * JavaScript; curve ops use `nacl.ll` (TweetNaCl CN extensions); scalar helpers and
- * `hash_to_ec` delegate to the Rust/WASM `crypto` module.
+ * `hash_to_ec32` / `hash_to_ec160` delegate to the Rust/WASM `crypto` module.
  *
  * @module cnutils
  */
@@ -350,20 +350,22 @@ export function ge_double_scalarmult_base_vartime(c, P, r) {
 }
 
 /**
- * @param {string} r
- * @param {string} P
- * @param {string} c
- * @param {string} I
- * @returns {string}
+ * `r·hash_to_ec32(P) + c·I` (wallet postcomp path; needs 32-byte compressed `Pb`).
+ *
+ * @param {string} r - 64-char hex scalar.
+ * @param {string} P - 64-char hex public key (compressed point input to `hash_to_ec32`).
+ * @param {string} c - 64-char hex scalar.
+ * @param {string} I - 64-char hex point.
+ * @returns {string} 64-char hex point.
  */
 export function ge_double_scalarmult_postcomp_vartime(r, P, c, I) {
   if (c.length !== 64 || P.length !== 64 || r.length !== 64 || I.length !== 64) {
     throw new Error('Invalid input length!');
   }
-  if (typeof wasmCrypto.hash_to_ec !== 'function') {
-    throw new Error('hash_to_ec is not in crypto WASM; run npm run build:crypto');
+  if (typeof wasmCrypto.hash_to_ec32 !== 'function') {
+    throw new Error('hash_to_ec32 is not in crypto WASM; run npm run build:crypto');
   }
-  const Pb = wasmCrypto.hash_to_ec(P);
+  const Pb = wasmCrypto.hash_to_ec32(P);
   return bintohex(
     nacl.ll.ge_double_scalarmult_postcomp_vartime(
       hextobin(r),

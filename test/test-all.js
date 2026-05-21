@@ -1,3 +1,4 @@
+import { runCnTests } from "./test-cn.js";
 import { runCnutilsTests } from "./test-cnutils.js";
 import { runCryptoTests } from "./test-crypto.js";
 import { runCypherTests } from "./test-cypher.js";
@@ -7,6 +8,7 @@ const SUITES = [
   { name: "mnemonic", run: runMnemonicTests },
   { name: "cnutils", run: runCnutilsTests },
   { name: "crypto", run: runCryptoTests },
+  { name: "cn", run: runCnTests },
   { name: "cypher", run: runCypherTests },
 ];
 

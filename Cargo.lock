@@ -90,6 +90,7 @@ dependencies = [
  "cc",
  "curve25519-dalek",
  "getrandom",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "tiny-keccak",
