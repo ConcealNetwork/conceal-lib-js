@@ -5,6 +5,9 @@
 `CnUtils`-style helpers, Keccak, and string-heavy work stay in plain JavaScript
 (and TweetNaCl CN extensions) where that wins on latency.
 
+**License:** [PolyForm Noncommercial 1.0.0](LICENSE) — use, modify, and redistribute for
+**noncommercial** purposes. Commercial use requires permission from the copyright holder.
+
 ---
 
 ## Use

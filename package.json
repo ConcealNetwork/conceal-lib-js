@@ -28,6 +28,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "LICENSE",
     "README.md",
     "bin/",
     "scripts/",
@@ -65,7 +66,7 @@
     "webwallet",
     "cryptocurrency"
   ],
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "bin": {
     "concealjs": "./bin/concealjs.js"
   },
