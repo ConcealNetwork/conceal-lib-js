@@ -15,7 +15,7 @@
  * - **`cnutils`** — hex/scalar helpers and curve utilities from `CnUtils` in
  *   `conceal-web-wallet/src/model/Cn.ts` (JS + nacl.ll + WASM hash/scalar ops).
  *
- * - **`cypher`** — ChaCha8 and ChaCha12 stream ciphers (32-byte key,
+ * - **`cypher`** — ChaCha8, ChaCha12, and ChaCha20 stream ciphers (32-byte key,
  *   12-byte nonce).  Compiled from Rust to WASM.
  *
  * - **`cn`** — `random_keypair`, `underive_public_key` (JS + WASM).

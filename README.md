@@ -222,6 +222,7 @@ Rust unit tests verify **generate → check** round-trips against the same C `cr
 |---|---|---|---|
 | `chacha8(key, nonce, data)` | `key`: `Uint8Array[32]`; `nonce`: `Uint8Array[12]`; `data`: `Uint8Array` | `Uint8Array` | ChaCha8 (8 rounds). Throws on wrong key/nonce size |
 | `chacha12(key, nonce, data)` | `key`: `Uint8Array[32]`; `nonce`: `Uint8Array[12]`; `data`: `Uint8Array` | `Uint8Array` | ChaCha12 (12 rounds). Throws on wrong key/nonce size |
+| `chacha20(key, nonce, data)` | `key`: `Uint8Array[32]`; `nonce`: `Uint8Array[12]`; `data`: `Uint8Array` | `Uint8Array` | ChaCha20 (20 rounds, IETF). Throws on wrong key/nonce size |
 
 ---
 
@@ -249,7 +250,7 @@ Rust unit tests verify **generate → check** round-trips against the same C `cr
 | `generate_key_derivation` | `crypto` | **Rust WASM** | DH key derivation |
 | `derive_public_key / derive_secret_key` | `crypto` | **Rust WASM** | Sub-key derivation |
 | `create_address / decode_address` | `crypto` | **Rust WASM** | Address encode/decode |
-| `chacha8 / chacha12` | `cypher` | **Rust WASM** | Stream cipher — compute-heavy |
+| `chacha8 / chacha12 / chacha20` | `cypher` | **Rust WASM** | Stream cipher — compute-heavy |
 
 ---
 
@@ -298,7 +299,7 @@ WASM outputs land in `src/wasm/<crate>/` (git-ignored). `cnutils` does not use W
 ## Native unit tests
 
 ```sh
-cargo test --workspace   # 29 tests: 16 crypto + 6 cypher + 7 mnemonic
+cargo test --workspace   # 33 tests: 16 crypto + 10 cypher + 7 mnemonic
 ```
 
 ## JS integration tests
@@ -311,10 +312,15 @@ npm run build:test         # test/wasm (web target) for crypto/cypher suites
 npx --yes serve .
 ```
 
-Open `http://localhost:3000/test/` (or the port `serve` prints).
+Open `http://localhost:3000/test/` (or the port `serve` prints) in a normal browser
+(Firefox, Chromium, etc.). The suite loads WASM from `test/wasm/` only.
 
 Use `npx serve .` from the repo root (serves `serve.json` so `.wasm` files get
 `Content-Type: application/wasm`).
+
+If you see `WebAssembly is not defined`, WebAssembly is disabled or unavailable
+(e.g. LibreWolf with `javascript.options.wasm` = `false`, or a minimal embedded
+preview). Enable WASM in about:config or run the page in a full browser.
 
 
 ---
@@ -330,7 +336,7 @@ concealjs/
 ├── rust/                   # all Rust crates → compiled to WASM
 │   ├── mnemonic/           # mn_encode / mn_decode / mn_random (Rust, kept for reference)
 │   ├── crypto/             # keccak, EC ops, key derivation, address
-│   └── cypher/             # chacha8 / chacha12 stream ciphers
+│   └── cypher/             # chacha8 / chacha12 / chacha20 stream ciphers
 │
 ├── src/                    # public JS/TS API layer (the npm package)
 │   ├── index.js            # re-exports: mnemonic, random, cn, cnutils, crypto, cypher

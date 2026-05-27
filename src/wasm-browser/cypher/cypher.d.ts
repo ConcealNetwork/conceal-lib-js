@@ -9,6 +9,13 @@
 export function chacha12(key: Uint8Array, nonce: Uint8Array, data: Uint8Array): Uint8Array;
 
 /**
+ * ChaCha20 stream cipher (20 rounds, IETF variant).
+ *
+ * Same interface as `chacha8` and `chacha12`.
+ */
+export function chacha20(key: Uint8Array, nonce: Uint8Array, data: Uint8Array): Uint8Array;
+
+/**
  * ChaCha8 stream cipher (8 rounds).
  *
  * Encrypts or decrypts `data` using `key` (32 bytes) and `nonce` (12 bytes).
@@ -21,6 +28,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly chacha12: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
+    readonly chacha20: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly chacha8: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

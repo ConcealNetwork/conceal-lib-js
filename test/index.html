@@ -36,13 +36,23 @@
   <script type="importmap">
   {
     "imports": {
-      "#cnutils-wasm": "/src/js/cnutils-wasm.browser.js"
+      "#cnutils-wasm": "/test/cnutils-wasm.js"
     }
   }
   </script>
   <script type="module">
-    import initCrypto from "../src/wasm-browser/crypto/crypto.js";
-    import initCypher from "../src/wasm-browser/cypher/cypher.js";
+    const results = document.getElementById("results");
+
+    if (typeof WebAssembly === "undefined") {
+      results.innerHTML =
+        '<p class="fail">WebAssembly is not available in this environment. ' +
+        "Use a normal browser over <code>http://localhost</code> (not <code>file://</code>). " +
+        "In LibreWolf/Firefox, set <code>javascript.options.wasm</code> to <code>true</code> in about:config.</p>";
+      throw new Error("WebAssembly is not defined");
+    }
+
+    import initCrypto from "./wasm/crypto/crypto.js";
+    import initCypher from "./wasm/cypher/cypher.js";
     await Promise.all([initCrypto(), initCypher()]);
     await import("./test-all.js");
   </script>

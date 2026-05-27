@@ -2,12 +2,11 @@
 //! `conceal-core/src/crypto/crypto.cpp` (`crypto_ops`).
 
 use crate::ffi::{
-    ge_double_scalarmult_base_vartime, ge_double_scalarmult_precomp_vartime,
-    ge_dsm_precomp, ge_frombytes_vartime, ge_scalarmult, ge_scalarmult_base, ge_tobytes,
-    hash_to_ec_p3, GeP2, GeP3,
+    ge_double_scalarmult_base_vartime, ge_double_scalarmult_precomp_vartime, ge_dsm_precomp,
+    ge_frombytes_vartime, ge_scalarmult, ge_scalarmult_base, ge_tobytes, hash_to_ec_p3, GeP2, GeP3,
 };
 use crate::ffi::{
-    hash_to_scalar_c, sc_add_c, sc_check_c, sc_isnonzero_c, sc_mulsub_c, sc_sub_c, sc_0_c,
+    hash_to_scalar_c, sc_0_c, sc_add_c, sc_check_c, sc_isnonzero_c, sc_mulsub_c, sc_sub_c,
 };
 use crate::scalar::sc_check_bytes;
 use crate::utils::hex_to_bytes32;
@@ -66,10 +65,7 @@ pub fn generate_signature_bytes(
     };
     crate::ffi::ge_p3_tobytes(&mut buf.comm, &tmp3);
     let comm_bytes = unsafe {
-        std::slice::from_raw_parts(
-            (&raw const buf).cast::<u8>(),
-            std::mem::size_of::<SComm>(),
-        )
+        std::slice::from_raw_parts((&raw const buf).cast::<u8>(), std::mem::size_of::<SComm>())
     };
     let c = hash_to_scalar_c(comm_bytes);
     sig[..32].copy_from_slice(&c);
@@ -184,10 +180,7 @@ pub fn check_signature_bytes(
     };
     ge_tobytes(&mut buf.comm, &tmp2);
     let c = hash_to_scalar_c(unsafe {
-        std::slice::from_raw_parts(
-            (&raw const buf).cast::<u8>(),
-            std::mem::size_of::<SComm>(),
-        )
+        std::slice::from_raw_parts((&raw const buf).cast::<u8>(), std::mem::size_of::<SComm>())
     });
     let diff = sc_sub_c(&c, &c_part);
     !sc_isnonzero_c(&diff)
@@ -259,12 +252,10 @@ pub fn check_signature_hex(
             sig_bytes.len()
         ));
     }
-    let sig: [u8; SIGNATURE_SIZE] = sig_bytes.try_into().map_err(|_| "invalid signature length")?;
-    Ok(check_signature_bytes(
-        &prefix_hash,
-        &pub_key,
-        &sig,
-    ))
+    let sig: [u8; SIGNATURE_SIZE] = sig_bytes
+        .try_into()
+        .map_err(|_| "invalid signature length")?;
+    Ok(check_signature_bytes(&prefix_hash, &pub_key, &sig))
 }
 
 /// Hex API for `check_ring_signature`.
@@ -332,17 +323,8 @@ pub fn generate_ring_signature_hex(
     let sec_key = hex_to_bytes32(sec_hex)?;
     let pubs: Result<Vec<[u8; 32]>, String> = pubs_hex.iter().map(|h| hex_to_bytes32(h)).collect();
     let pubs = pubs?;
-    let sigs = generate_ring_signature_bytes(
-        &prefix_hash,
-        &key_image,
-        &pubs,
-        &sec_key,
-        sec_index,
-    )?;
-    Ok(sigs
-        .iter()
-        .map(|s| crate::utils::bytes_to_hex(s))
-        .collect())
+    let sigs = generate_ring_signature_bytes(&prefix_hash, &key_image, &pubs, &sec_key, sec_index)?;
+    Ok(sigs.iter().map(|s| crate::utils::bytes_to_hex(s)).collect())
 }
 
 #[cfg(test)]
