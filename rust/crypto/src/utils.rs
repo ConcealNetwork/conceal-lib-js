@@ -13,7 +13,7 @@ pub fn hex_to_bytes32(hex: &str) -> Result<[u8; 32], String> {
 }
 
 pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         return Err("hex string has odd length".into());
     }
     (0..hex.len() / 2)

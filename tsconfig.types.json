@@ -15,7 +15,8 @@
     "src/js/mnemonic.js",
     "src/js/cnutils.js",
     "src/js/random.js",
-    "src/js/cn.js"
+    "src/js/cn.js",
+    "src/js/transactions.js"
   ],
   "exclude": [
     "src/wasm",

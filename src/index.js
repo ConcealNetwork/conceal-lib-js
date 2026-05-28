@@ -3,7 +3,7 @@
  *
  * One-stop cryptographic library for Conceal Network.
  *
- * Four namespaces are exported:
+ * Namespaces exported:
  *
  * - **`mnemonic`** — `mn_encode`, `mn_decode`, `mn_random` (plain JS, no WASM).
  *   ~2.8× faster than the Rust WASM build for string-heavy mnemonic operations.
@@ -19,7 +19,10 @@
  *   12-byte nonce).  Compiled from Rust to WASM.
  *
  * - **`cn`** — `random_keypair`, `underive_public_key` (JS + WASM).
+ * - **`transactions`** — `ownsTx`, receive/spend scan helpers (JS + WASM).
  * - **`random`** — `rand32`, `rand16`, `rand8` (browser entropy via `mnemonic`).
+ *
+ * - **`sha3_384`** — SHA3-384 (NIST padding) as lowercase hex (plain JS, `tiers/sha3.js`).
  *
  * ## Runtimes
  *
@@ -41,6 +44,8 @@
 export * as mnemonic from "./js/mnemonic.js";
 export * as cnutils  from "./js/cnutils.js";
 export * as random   from "./js/random.js";
-export * as cn       from "./js/cn.js";
-export * as crypto   from "./wasm/crypto/crypto.js";
+export * as cn           from "./js/cn.js";
+export * as transactions from "./js/transactions.js";
+export * as crypto       from "./wasm/crypto/crypto.js";
 export * as cypher   from "./wasm/cypher/cypher.js";
+export { sha3_384 } from "./js/tiers/sha3.js";

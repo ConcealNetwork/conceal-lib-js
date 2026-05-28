@@ -48,6 +48,34 @@ export function check_signature(prefix_hash_hex, pub_hex, sig_hex) {
 }
 
 /**
+ * Verifies a CryptoNote signature in transaction-proof mode (wallet `checkTxProof`).
+ *
+ * Challenge binds `prefix_hash`, derivation `D`, tx public key `R`, and output key `A`
+ * (`A` is not mixed into `X`/`Y`; it is accepted for API parity with the wallet).
+ * Uses `Y = c·D + r·G` like `CnNativeBride.checkTxProof`. Invalid hex → `false`.
+ * @param {string} prefix_hash_hex
+ * @param {string} r_pub_hex
+ * @param {string} a_pub_hex
+ * @param {string} d_pub_hex
+ * @param {string} sig_hex
+ * @returns {boolean}
+ */
+export function check_tx_proof(prefix_hash_hex, r_pub_hex, a_pub_hex, d_pub_hex, sig_hex) {
+    const ptr0 = passStringToWasm0(prefix_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(r_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(a_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(d_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ptr4 = passStringToWasm0(sig_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len4 = WASM_VECTOR_LEN;
+    const ret = wasm.check_tx_proof(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
+    return ret !== 0;
+}
+
+/**
  * cn_fast_hash: Keccak-256 of hex-decoded input.
  * Matches `CnUtils.cn_fast_hash(hex)` in Cn.ts.
  * @param {string} data_hex
@@ -801,6 +829,70 @@ export function sc_sub(a_hex, b_hex) {
         wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
     }
 }
+
+/**
+ * One WASM call: `generate_key_derivation` then `derive_public_key` for each output.
+ * `output_indices[i]` is the derivation index; `output_keys_hex[i]` is the on-chain key (64 hex).
+ * @param {string} tx_pub_hex
+ * @param {string} view_sec_hex
+ * @param {string} spend_pub_hex
+ * @param {Uint32Array} output_indices
+ * @param {string[]} output_keys_hex
+ * @returns {boolean}
+ */
+export function scan_receive_outputs(tx_pub_hex, view_sec_hex, spend_pub_hex, output_indices, output_keys_hex) {
+    const ptr0 = passStringToWasm0(tx_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(view_sec_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(spend_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passArray32ToWasm0(output_indices, wasm.__wbindgen_malloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ptr4 = passArrayJsValueToWasm0(output_keys_hex, wasm.__wbindgen_malloc);
+    const len4 = WASM_VECTOR_LEN;
+    const ret = wasm.scan_receive_outputs(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0] !== 0;
+}
+
+/**
+ * Batch receive scan: one WASM call for many transactions (shared view/spend keys).
+ *
+ * `tx_offsets.len() == tx_pub_hex.len() + 1`; slice `i` is
+ * `output_indices[tx_offsets[i]..tx_offsets[i+1]]`. Empty `tx_pub_hex[i]` → `0`.
+ * Returns `1` / `0` per tx (`Vec<u32>` for wasm-bindgen; map to boolean in JS).
+ * @param {string} view_sec_hex
+ * @param {string} spend_pub_hex
+ * @param {string[]} tx_pub_hex
+ * @param {Uint32Array} output_indices
+ * @param {string[]} output_keys_hex
+ * @param {Uint32Array} tx_offsets
+ * @returns {Uint32Array}
+ */
+export function scan_receive_outputs_batch(view_sec_hex, spend_pub_hex, tx_pub_hex, output_indices, output_keys_hex, tx_offsets) {
+    const ptr0 = passStringToWasm0(view_sec_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(spend_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArrayJsValueToWasm0(tx_pub_hex, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passArray32ToWasm0(output_indices, wasm.__wbindgen_malloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ptr4 = passArrayJsValueToWasm0(output_keys_hex, wasm.__wbindgen_malloc);
+    const len4 = WASM_VECTOR_LEN;
+    const ptr5 = passArray32ToWasm0(tx_offsets, wasm.__wbindgen_malloc);
+    const len5 = WASM_VECTOR_LEN;
+    const ret = wasm.scan_receive_outputs_batch(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v7 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v7;
+}
 export function __wbg_String_8564e559799eccda(arg0, arg1) {
     const ret = String(arg1);
     const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -941,6 +1033,11 @@ function addToExternrefTable0(obj) {
     return idx;
 }
 
+function getArrayU32FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
+
 function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
@@ -956,6 +1053,14 @@ function getDataViewMemory0() {
 
 function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
+}
+
+let cachedUint32ArrayMemory0 = null;
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
 }
 
 let cachedUint8ArrayMemory0 = null;
@@ -977,6 +1082,13 @@ function handleError(f, args) {
 
 function isLikeNone(x) {
     return x === undefined || x === null;
+}
+
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getUint32ArrayMemory0().set(arg, ptr / 4);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passArrayJsValueToWasm0(array, malloc) {

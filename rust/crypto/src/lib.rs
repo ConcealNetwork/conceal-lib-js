@@ -12,7 +12,8 @@
 //! | `scalar` | `sc_reduce32`, `sc_add`, `sc_sub`, `sc_mulsub`, `sc_0`, `sc_check` |
 //! | `ge` | `ge_scalarmult_base`, `ge_scalarmult`, `ge_mul8`, `ge_add`, `ge_tobytes` |
 //! | `keys` | `generate_keys`, `generate_key_derivation`, `derive_public_key`, `derive_secret_key`, `hash_to_scalar`, `generate_key_image` |
-//! | `signature` | `generate_signature`, `generate_ring_signature` |
+//! | `scan` | `scan_receive_outputs`, `scan_receive_outputs_batch` |
+//! | `signature` | `generate_signature`, `generate_ring_signature`, `check_tx_proof` |
 //! | `address` | `create_address`, `decode_address` |
 //! | `base58` | CryptoNote Base58 encode/decode |
 //! | `utils` | hex conversion helpers |
@@ -25,6 +26,7 @@ mod keccak;
 mod keys;
 mod rng;
 mod scalar;
+mod scan;
 mod signature;
 mod utils;
 
@@ -222,6 +224,52 @@ pub fn generate_key_derivation(pub_hex: &str, sec_hex: &str) -> Result<String, J
         .map_err(|e| JsValue::from_str(&e))
 }
 
+/// One WASM call: `generate_key_derivation` then `derive_public_key` for each output.
+/// `output_indices[i]` is the derivation index; `output_keys_hex[i]` is the on-chain key (64 hex).
+#[wasm_bindgen]
+pub fn scan_receive_outputs(
+    tx_pub_hex: &str,
+    view_sec_hex: &str,
+    spend_pub_hex: &str,
+    output_indices: Vec<u32>,
+    output_keys_hex: Vec<String>,
+) -> Result<bool, JsValue> {
+    scan::scan_receive_outputs_hex(
+        tx_pub_hex,
+        view_sec_hex,
+        spend_pub_hex,
+        &output_indices,
+        &output_keys_hex,
+    )
+    .map_err(|e| JsValue::from_str(&e))
+}
+
+/// Batch receive scan: one WASM call for many transactions (shared view/spend keys).
+///
+/// `tx_offsets.len() == tx_pub_hex.len() + 1`; slice `i` is
+/// `output_indices[tx_offsets[i]..tx_offsets[i+1]]`. Empty `tx_pub_hex[i]` → `0`.
+/// Returns `1` / `0` per tx (`Vec<u32>` for wasm-bindgen; map to boolean in JS).
+#[wasm_bindgen]
+pub fn scan_receive_outputs_batch(
+    view_sec_hex: &str,
+    spend_pub_hex: &str,
+    tx_pub_hex: Vec<String>,
+    output_indices: Vec<u32>,
+    output_keys_hex: Vec<String>,
+    tx_offsets: Vec<u32>,
+) -> Result<Vec<u32>, JsValue> {
+    scan::scan_receive_outputs_batch_hex(
+        view_sec_hex,
+        spend_pub_hex,
+        &tx_pub_hex,
+        &output_indices,
+        &output_keys_hex,
+        &tx_offsets,
+    )
+    .map(|flags| flags.into_iter().map(u32::from).collect())
+    .map_err(|e| JsValue::from_str(&e))
+}
+
 /// derive_public_key: base_pub + derivation_to_scalar(derivation, index) × B.
 /// Matches `CnNativeBride.derive_public_key(derivation, index, pub)`.
 #[wasm_bindgen]
@@ -388,6 +436,22 @@ pub fn check_signature(
 ) -> Result<bool, JsValue> {
     signature::check_signature_hex(prefix_hash_hex, pub_hex, sig_hex)
         .map_err(|e| JsValue::from_str(&e))
+}
+
+/// Verifies a CryptoNote signature in transaction-proof mode (wallet `checkTxProof`).
+///
+/// Challenge binds `prefix_hash`, derivation `D`, tx public key `R`, and output key `A`
+/// (`A` is not mixed into `X`/`Y`; it is accepted for API parity with the wallet).
+/// Uses `Y = c·D + r·G` like `CnNativeBride.checkTxProof`. Invalid hex → `false`.
+#[wasm_bindgen]
+pub fn check_tx_proof(
+    prefix_hash_hex: &str,
+    r_pub_hex: &str,
+    a_pub_hex: &str,
+    d_pub_hex: &str,
+    sig_hex: &str,
+) -> bool {
+    signature::check_tx_proof_hex(prefix_hash_hex, r_pub_hex, a_pub_hex, d_pub_hex, sig_hex)
 }
 
 /// Verifies a ring signature.

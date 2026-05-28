@@ -1,15 +1,21 @@
-import { keccak_256 } from "../src/js/tiers/sha3.js";
 import wasmCrypto from "#cnutils-wasm";
 import * as cnutils from "../src/js/cnutils.js";
+import { keccak_256, sha3_384 } from "../src/js/tiers/sha3.js";
 
 const KECCAK_EMPTY =
   "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
 
-const SEED =
-  "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+const SEED = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
 const SPEND_PUB =
   "130ae82201d7072e6fbfc0a1884fb54636554d14945b799125cf7ce38d477f51";
+
+/** Wallet `allowedExceptions` joined content (allowedPages.ts parity). */
+const ALLOWED_EXCEPTIONS_CONTENT =
+  "send%3Faddress%3Dccx7V4LeUXy2eZ9waDXgsLS7Uc11e2CpNSCWVdxEqSRFAm6P6NQhSb7XMG1D6VAZKmJeaJP37WYQg84zbNrPduTX2whZ5pacfj";
+
+const SHA3_384_ALLOWED_EXCEPTIONS =
+  "8f59c6a2a7a81c7a22f46c9bbe2b5bbc014af6295d8c49639d686d1aa1b5b3cfb4736dc7b533eac4462601fc0d0f5620";
 
 /**
  * @param {(msg: string, ok: boolean) => void} log
@@ -31,6 +37,26 @@ export async function runCnutilsTests(log) {
     log("cn_fast_hash === keccak_256(hextobin): " + (ok ? "PASS" : "FAIL"), ok);
   } catch (e) {
     log("cn_fast_hash / keccak_256 parity failed: " + e, false);
+  }
+
+  try {
+    const digest = sha3_384(ALLOWED_EXCEPTIONS_CONTENT);
+    const ok =
+      digest === SHA3_384_ALLOWED_EXCEPTIONS &&
+      digest.length === 96 &&
+      digest === digest.toLowerCase();
+    log("sha3_384(allowedExceptions): " + (ok ? "PASS" : "FAIL"), ok);
+  } catch (e) {
+    log("sha3_384 wallet vector failed: " + e, false);
+  }
+
+  try {
+    const fromString = sha3_384("test");
+    const fromBytes = sha3_384(new TextEncoder().encode("test"));
+    const ok = fromString === fromBytes && fromString.length === 96;
+    log("sha3_384 string === UTF-8 bytes: " + (ok ? "PASS" : "FAIL"), ok);
+  } catch (e) {
+    log("sha3_384 input types failed: " + e, false);
   }
 
   try {
@@ -130,7 +156,10 @@ export async function runCnutilsTests(log) {
       deriv + cnutils.encode_varint(0),
     );
     const ok = cnScalar === wasmScalar;
-    log("derivation_to_scalar vs WASM hash_to_scalar: " + (ok ? "PASS" : "FAIL"), ok);
+    log(
+      "derivation_to_scalar vs WASM hash_to_scalar: " + (ok ? "PASS" : "FAIL"),
+      ok,
+    );
   } catch (e) {
     log("derivation_to_scalar failed: " + e, false);
   }
@@ -145,7 +174,10 @@ export async function runCnutilsTests(log) {
     const enc = cnutils.encode_rct_ecdh(plain, key);
     const dec = cnutils.decode_rct_ecdh(enc, key);
     const ok = dec.mask === plain.mask && dec.amount === plain.amount;
-    log("encode_rct_ecdh / decode_rct_ecdh round-trip: " + (ok ? "PASS" : "FAIL"), ok);
+    log(
+      "encode_rct_ecdh / decode_rct_ecdh round-trip: " + (ok ? "PASS" : "FAIL"),
+      ok,
+    );
   } catch (e) {
     log("rct ecdh round-trip failed: " + e, false);
   }

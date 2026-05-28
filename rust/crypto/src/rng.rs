@@ -46,7 +46,6 @@ pub fn fill_random_bytes(out: &mut [u8]) {
     #[cfg(target_arch = "wasm32")]
     {
         getrandom::getrandom(out).expect("getrandom");
-        return;
     }
 
     #[cfg(not(target_arch = "wasm32"))]

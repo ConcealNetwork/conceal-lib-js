@@ -16,6 +16,8 @@ const TYPE_FILES = [
   "js/cnutils.d.ts",
   "js/random.d.ts",
   "js/cn.d.ts",
+  "js/transactions.d.ts",
+  "js/tiers/sha3.d.ts",
   "wasm/crypto/crypto.d.ts",
   "wasm/cypher/cypher.d.ts",
 ];
@@ -54,6 +56,9 @@ export async function runPrebuild({ outDir }) {
           build.onResolve({ filter: /^crypto$/ }, () => ({
             path: path.join(PKG_ROOT, "scripts/stub-node-crypto.cjs"),
           }));
+          build.onResolve({ filter: /^#crypto-wasm$/ }, () => ({
+            path: path.join(PKG_ROOT, "src/wasm-browser/crypto/crypto.js"),
+          }));
         },
       },
     ],
@@ -79,6 +84,8 @@ export async function runPrebuild({ outDir }) {
   cnutils: typeof import("./js/cnutils");
   random: typeof import("./js/random");
   cn: typeof import("./js/cn");
+  transactions: typeof import("./js/transactions");
+  sha3_384: typeof import("./js/tiers/sha3").sha3_384;
 };
 
 declare global {

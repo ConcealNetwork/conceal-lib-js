@@ -1,3 +1,5 @@
+import * as cn from "../src/js/cn.js";
+import * as random from "../src/js/random.js";
 import {
   cn_fast_hash,
   derive_public_key,
@@ -6,11 +8,8 @@ import {
   sc_check,
   sc_reduce32,
 } from "./wasm/crypto/crypto.js";
-import * as cn from "../src/js/cn.js";
-import * as random from "../src/js/random.js";
 
-const SEED =
-  "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+const SEED = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
 const HEX64 = /^[0-9a-f]{64}$/;
 
@@ -24,7 +23,9 @@ export async function runCnTests(log) {
     const r16 = random.rand16();
     const r8 = random.rand8();
     const ok =
-      HEX64.test(r32) && /^[0-9a-f]{32}$/.test(r16) && /^[0-9a-f]{16}$/.test(r8);
+      HEX64.test(r32) &&
+      /^[0-9a-f]{32}$/.test(r16) &&
+      /^[0-9a-f]{16}$/.test(r8);
     log(
       "rand32/rand16/rand8 hex lengths (64/32/16): " + (ok ? "PASS" : "FAIL"),
       ok,
@@ -50,10 +51,7 @@ export async function runCnTests(log) {
     const seed = random.rand32();
     const reduced = sc_reduce32(seed);
     const ok = HEX64.test(reduced) && sc_check(reduced);
-    log(
-      "sc_reduce32(rand32) reference shape: " + (ok ? "PASS" : "FAIL"),
-      ok,
-    );
+    log("sc_reduce32(rand32) reference shape: " + (ok ? "PASS" : "FAIL"), ok);
   } catch (e) {
     log("sc_reduce32(rand32) reference failed: " + e, false);
   }
@@ -67,7 +65,10 @@ export async function runCnTests(log) {
       typeof keys.pub === "string" &&
       HEX64.test(keys.sec) &&
       HEX64.test(keys.pub);
-    log("random_keypair → {sec, pub} 64-char hex: " + (ok ? "PASS" : "FAIL"), ok);
+    log(
+      "random_keypair → {sec, pub} 64-char hex: " + (ok ? "PASS" : "FAIL"),
+      ok,
+    );
   } catch (e) {
     log("random_keypair failed: " + e, false);
   }

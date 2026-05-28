@@ -139,7 +139,6 @@ mod tests {
         assert_eq!(recovered, plaintext);
     }
 
-
     #[test]
     fn chacha20_encrypt_decrypt_roundtrip() {
         let key = make_key();
@@ -150,7 +149,7 @@ mod tests {
         let recovered = chacha20_inner(&key, &nonce, &ciphertext).unwrap();
         assert_eq!(recovered, plaintext);
     }
-    
+
     #[test]
     fn chacha8_wrong_key_size_returns_error() {
         assert!(chacha8_inner(&[0u8; 16], &[0u8; 12], b"data").is_err());

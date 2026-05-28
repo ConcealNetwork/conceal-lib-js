@@ -2,5 +2,6 @@
 /pkg
 /js/wasm/
 /node_modules/
+/pages-dist
 
 *.tgz

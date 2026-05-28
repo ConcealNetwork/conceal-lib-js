@@ -470,4 +470,12 @@ const _sha3Methods = (function (root, undefined) {
  */
 export const keccak_256 = _sha3Methods.keccak_256;
 
+/**
+ * SHA3-384 (NIST padding, not Keccak-384). Returns a lowercase hex digest (96 characters).
+ *
+ * @param {Uint8Array | string | ArrayBuffer} message
+ * @returns {string}
+ */
+export const sha3_384 = _sha3Methods.sha3_384;
+
 export default _sha3Methods;

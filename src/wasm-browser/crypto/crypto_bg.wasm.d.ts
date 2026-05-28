@@ -3,6 +3,7 @@
 export const memory: WebAssembly.Memory;
 export const check_ring_signature: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number];
 export const check_signature: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+export const check_tx_proof: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
 export const cn_fast_hash: (a: number, b: number) => [number, number, number, number];
 export const create_address: (a: number, b: number) => [number, number, number];
 export const decode_address: (a: number, b: number) => [number, number, number];
@@ -28,6 +29,8 @@ export const sc_check: (a: number, b: number) => [number, number, number];
 export const sc_mulsub: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
 export const sc_reduce32: (a: number, b: number) => [number, number, number, number];
 export const sc_sub: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const scan_receive_outputs: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number];
+export const scan_receive_outputs_batch: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number, number];
 export const ge_tobytes: (a: number, b: number) => [number, number, number, number];
 export const hash_to_ec32: (a: number, b: number) => [number, number, number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;

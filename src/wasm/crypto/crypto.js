@@ -5,5 +5,5 @@ import { __wbg_set_wasm } from "./crypto_bg.js";
 __wbg_set_wasm(wasm);
 wasm.__wbindgen_start();
 export {
-    check_ring_signature, check_signature, cn_fast_hash, create_address, decode_address, derive_public_key, derive_secret_key, ge_add, ge_frombytes_vartime, ge_mul8, ge_p3_tobytes, ge_scalarmult, ge_scalarmult_base, ge_tobytes, generate_key_derivation, generate_key_image, generate_keys, generate_ring_signature, generate_signature, hash_to_ec, hash_to_ec160, hash_to_ec32, hash_to_scalar, sc_0, sc_add, sc_check, sc_mulsub, sc_reduce32, sc_sub
+    check_ring_signature, check_signature, check_tx_proof, cn_fast_hash, create_address, decode_address, derive_public_key, derive_secret_key, ge_add, ge_frombytes_vartime, ge_mul8, ge_p3_tobytes, ge_scalarmult, ge_scalarmult_base, ge_tobytes, generate_key_derivation, generate_key_image, generate_keys, generate_ring_signature, generate_signature, hash_to_ec, hash_to_ec160, hash_to_ec32, hash_to_scalar, sc_0, sc_add, sc_check, sc_mulsub, sc_reduce32, sc_sub, scan_receive_outputs, scan_receive_outputs_batch
 } from "./crypto_bg.js";

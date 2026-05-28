@@ -27,6 +27,15 @@ struct RsCommHeader {
     h: [u8; 32],
 }
 
+/// Transaction-proof commitment (`prefix_hash || D || X || Y`) for `check_tx_proof`.
+#[repr(C)]
+struct TxProofComm {
+    h: [u8; 32],
+    d: [u8; 32],
+    x: [u8; 32],
+    y: [u8; 32],
+}
+
 #[repr(C)]
 struct RsCommAb {
     a: [u8; 32],
@@ -186,6 +195,97 @@ pub fn check_signature_bytes(
     !sc_isnonzero_c(&diff)
 }
 
+/// Verifies a CryptoNote signature in transaction-proof mode (`check_tx_proof` in `crypto.cpp`).
+///
+/// Challenge `c` must equal `hash_to_scalar(prefix_hash || D || X || Y)` with
+/// `X = c·R + r·G` and `Y = c·D + r·G` via `ge_double_scalarmult_base_vartime`
+/// (matches `CnNativeBride.checkTxProof` in conceal-web-wallet, not Monero's `c·D + r·A`).
+pub fn check_tx_proof_bytes(
+    prefix_hash: &[u8; 32],
+    r_pub: &[u8; 32],
+    a_pub: &[u8; 32],
+    d_pub: &[u8; 32],
+    sig: &[u8; SIGNATURE_SIZE],
+) -> bool {
+    let c_part: [u8; 32] = sig[..32].try_into().expect("sig c");
+    let r_part: [u8; 32] = sig[32..].try_into().expect("sig r");
+    if !sc_check_c(&c_part) || !sc_check_c(&r_part) {
+        return false;
+    }
+    let r_p3 = match ge_frombytes_vartime(r_pub) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+    if ge_frombytes_vartime(a_pub).is_err() {
+        return false;
+    }
+    let d_p3 = match ge_frombytes_vartime(d_pub) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+
+    let x_p2 = ge_double_scalarmult_base_vartime(&c_part, &r_p3, &r_part);
+    let mut x_bytes = [0u8; 32];
+    ge_tobytes(&mut x_bytes, &x_p2);
+
+    let y_p2 = ge_double_scalarmult_base_vartime(&c_part, &d_p3, &r_part);
+    let mut y_bytes = [0u8; 32];
+    ge_tobytes(&mut y_bytes, &y_p2);
+
+    let buf = TxProofComm {
+        h: *prefix_hash,
+        d: *d_pub,
+        x: x_bytes,
+        y: y_bytes,
+    };
+    let c2 = hash_to_scalar_c(unsafe {
+        std::slice::from_raw_parts(
+            (&raw const buf).cast::<u8>(),
+            std::mem::size_of::<TxProofComm>(),
+        )
+    });
+    let diff = sc_sub_c(&c2, &c_part);
+    !sc_isnonzero_c(&diff)
+}
+
+/// Hex API for `check_tx_proof`. Invalid hex or lengths return `false` (no error).
+pub fn check_tx_proof_hex(
+    prefix_hash_hex: &str,
+    r_pub_hex: &str,
+    a_pub_hex: &str,
+    d_pub_hex: &str,
+    sig_hex: &str,
+) -> bool {
+    let prefix_hash = match hex_to_bytes32(prefix_hash_hex) {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+    let r_pub = match hex_to_bytes32(r_pub_hex) {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+    let a_pub = match hex_to_bytes32(a_pub_hex) {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+    let d_pub = match hex_to_bytes32(d_pub_hex) {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+    let sig_bytes = match crate::utils::hex_to_bytes(sig_hex) {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+    if sig_bytes.len() != SIGNATURE_SIZE {
+        return false;
+    }
+    let sig: [u8; SIGNATURE_SIZE] = match sig_bytes.try_into() {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+    check_tx_proof_bytes(&prefix_hash, &r_pub, &a_pub, &d_pub, &sig)
+}
+
 /// Verifies a ring signature (`check_ring_signature` in `crypto.cpp`).
 pub fn check_ring_signature_bytes(
     prefix_hash: &[u8; 32],
@@ -331,7 +431,10 @@ pub fn generate_ring_signature_hex(
 mod tests {
     use super::*;
     use crate::ffi::generate_key_image_bytes;
-    use crate::keys::generate_keys_bytes;
+    use crate::keys::{
+        derive_public_key_bytes, derive_secret_key_bytes, generate_key_derivation_bytes,
+        generate_keys_bytes,
+    };
     use crate::rng::TestRng;
 
     #[test]
@@ -373,6 +476,52 @@ mod tests {
             &image,
             &[pub_key],
             &sigs
+        ));
+    }
+
+    #[test]
+    fn check_tx_proof_hex_rejects_invalid_inputs() {
+        assert!(!check_tx_proof_hex(
+            "zz",
+            &crate::utils::bytes_to_hex(&[0u8; 32]),
+            &crate::utils::bytes_to_hex(&[0u8; 32]),
+            &crate::utils::bytes_to_hex(&[0u8; 32]),
+            &crate::utils::bytes_to_hex(&[0u8; 64]),
+        ));
+    }
+
+    #[test]
+    fn check_tx_proof_rejects_bad_points_or_scalars() {
+        let prefix = crate::keccak::keccak256_bytes(b"p");
+        let (_, r_pub) = generate_keys_bytes(&[11u8; 32]);
+        let (_, a_pub) = generate_keys_bytes(&[12u8; 32]);
+        let (_, d_pub) = generate_keys_bytes(&[13u8; 32]);
+        let mut sig = [0u8; SIGNATURE_SIZE];
+        sig[..32].copy_from_slice(&random_scalar());
+        sig[32..].copy_from_slice(&random_scalar());
+        assert!(!check_tx_proof_bytes(&prefix, &r_pub, &a_pub, &d_pub, &sig));
+        sig[0] ^= 0x01;
+        assert!(!check_tx_proof_bytes(&prefix, &r_pub, &a_pub, &d_pub, &sig));
+    }
+
+    #[test]
+    fn check_tx_proof_differs_from_check_signature() {
+        let _rng = TestRng::seed(7);
+        let (spend_sec, spend_pub) = generate_keys_bytes(&[21u8; 32]);
+        let (view_sec, _) = generate_keys_bytes(&[22u8; 32]);
+        let (_, tx_pub) = generate_keys_bytes(&[23u8; 32]);
+        let derivation = generate_key_derivation_bytes(&tx_pub, &view_sec).unwrap();
+        let ephemeral = derive_public_key_bytes(&derivation, 1, &spend_pub).unwrap();
+        let ephemeral_sec = derive_secret_key_bytes(&derivation, 1, &spend_sec);
+        let prefix = crate::keccak::keccak256_bytes(b"contrast");
+        let sig = generate_signature_bytes(&prefix, &ephemeral, &ephemeral_sec).unwrap();
+        assert!(check_signature_bytes(&prefix, &ephemeral, &sig));
+        assert!(!check_tx_proof_bytes(
+            &prefix,
+            &tx_pub,
+            &ephemeral,
+            &derivation,
+            &sig,
         ));
     }
 }
