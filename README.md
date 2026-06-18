@@ -15,7 +15,7 @@
 ### Bundlers and Node (ESM)
 
 ```js
-import { mnemonic, random, cn, cnutils, crypto, cypher, transactions } from "concealjs";
+import { mnemonic, random, cn, cnutils, crypto, cypher, transactions, address } from "concealjs";
 ```
 
 Works with Vite, webpack, Rollup, and Node when your toolchain resolves the package `import` condition. WASM is loaded by the bundler automatically.
@@ -184,6 +184,27 @@ const owned = transactions.ownsTx(
 
 ---
 
+### Namespace `address` — JavaScript (`src/js/address.js`, `src/js/base58.js`)
+
+> Pure JS-tier address encoding — no WASM, works without `await init()`.
+> Mirrors `pubkeys_to_string` in `conceal-web-wallet`: `varint(prefix) + spend + view
+> [+ paymentId] + checksum`, base58-encoded. Lets callers that already hold public keys
+> (view-only wallets) or a payment ID build an address without a seed.
+> The WASM `crypto.create_address` / `crypto.decode_address` remain the seed-based path;
+> `address.encode_address` reproduces their output byte-for-byte (verified by parity tests).
+
+Exported constants: `ADDRESS_PREFIX` (`0x7ad4`), `INTEGRATED_ADDRESS_PREFIX` (`0x7ad5`), `ADDRESS_CHECKSUM_SIZE` (4), `INTEGRATED_ID_SIZE` (8).
+
+| Function | Parameters | Returns | Notes |
+|---|---|---|---|
+| `encode_address(spendPub, viewPub)` | two 64-char hex public keys | Base58 CCX address | `varint(ADDRESS_PREFIX) + spend + view + checksum`; throws on bad hex/length |
+| `encode_integrated_address(spendPub, viewPub, paymentId)` | two 64-char hex keys + 16-char hex payment ID | Base58 CCX integrated address | `varint(INTEGRATED_ADDRESS_PREFIX) + spend + view + paymentId + checksum`; throws on bad input |
+| `base58_encode(hex)` / `base58_decode(b58)` | hex ↔ base58 | base58 / hex | CryptoNote block-based base58 (re-exported from `base58.js`) |
+
+**Low-level base58 (`src/js/base58.js`):** `encode(hex)` / `decode(b58)` — block-based CryptoNote base58 (8-byte blocks → 11 chars), native `BigInt`. Throws `Invalid block size` / `Overflow` / `Invalid symbol` / `Invalid encoded length` on malformed input.
+
+---
+
 ### Namespace `crypto` — Rust WASM (`rust/crypto/`)
 
 > All functions accept and return **hex strings** (lowercase).
@@ -314,7 +335,9 @@ Rust unit tests verify **generate → check** round-trips against the same C `cr
 | `scan_receive_outputs` | `crypto` | **Rust WASM** | Batched receive-output scan |
 | `ownsTx` / `scanReceiveOutputs` | `transactions` | **mixed** | JS extra parse + one WASM receive scan |
 | `scanSpendInputs` | `transactions` | **plain JS** | Wallet context sets |
-| `create_address / decode_address` | `crypto` | **Rust WASM** | Address encode/decode |
+| `create_address / decode_address` | `crypto` | **Rust WASM** | Seed-based address encode/decode |
+| `encode_address / encode_integrated_address` | `address` | **plain JS** | Encode from public keys (view-only / integrated); parity with WASM `create_address` |
+| `encode / decode` (base58) | `base58` | **plain JS** | CryptoNote block-based base58 (native `BigInt`) |
 | `chacha8 / chacha12 / chacha20` | `cypher` | **Rust WASM** | Stream cipher — compute-heavy |
 
 ---
@@ -369,7 +392,7 @@ cargo test --workspace   # 33 tests: 16 crypto + 10 cypher + 7 mnemonic
 
 ## JS integration tests
 
-Browser suite (`test/`): mnemonic, **cnutils**, crypto, **cn**, cypher.
+Browser suite (`test/`): mnemonic, **cnutils**, crypto, transactions, **address**, **cn**, cypher.
 
 ```sh
 npm run build              # src/wasm for cnutils + package consumers
@@ -404,13 +427,15 @@ concealjs/
 │   └── cypher/             # chacha8 / chacha12 / chacha20 stream ciphers
 │
 ├── src/                    # public JS/TS API layer (the npm package)
-│   ├── index.js            # re-exports: mnemonic, random, cn, cnutils, transactions, crypto, cypher
+│   ├── index.js            # re-exports: mnemonic, random, cn, cnutils, transactions, address, crypto, cypher
 │   ├── index.d.ts
 │   ├── js/
 │   │   ├── mnemonic.js
 │   │   ├── random.js       # rand32 / rand16 / rand8 / random_scalar
 │   │   ├── cn.js           # random_keypair, underive_public_key
 │   │   ├── transactions.js # ownsTx, parseTxExtra, scan helpers
+│   │   ├── address.js      # encode_address, encode_integrated_address (JS-tier, no WASM)
+│   │   ├── base58.js       # CryptoNote block-based base58 (native BigInt)
 │   │   ├── cnutils.js      # CnUtils port
 │   │   └── tiers/          # biginteger.js, nacl.js, sha3.js
 │   └── wasm/               # wasm-pack bundler outputs (git-ignored)
@@ -423,6 +448,8 @@ concealjs/
     ├── test-cn.js
     ├── test-crypto.js
     ├── test-mnemonic.js
+    ├── test-transactions.js
+    ├── test-address.js
     └── wasm/               # web-target WASM for test page (git-ignored)
 ```
 
