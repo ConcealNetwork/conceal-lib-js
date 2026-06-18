@@ -1,0 +1,104 @@
+---
+description: Draft concise git commit messages from staged changes — one-line, short summary, or long per-file bullets. Use when the user asks to draft or write a commit message, or mentions staged files or COMMIT_EDITMSG.
+alwaysApply: false
+---
+
+# Draft Commit Message
+
+Draft commit text only — do **not** run `git commit` unless the user explicitly asks.
+
+## Gather context
+
+Run in parallel when possible:
+
+```bash
+git status
+git diff --cached --stat
+git diff --cached --name-only
+git log -5 --oneline
+```
+
+Prefer **staged** changes. If nothing is staged, say so and use unstaged diff only if the user wants that.
+
+## Prefix (first line)
+
+Start the subject with one of:
+
+| Prefix | Use when |
+|--------|----------|
+| `feat` | New capability or API |
+| `fix` | Bug or incorrect behavior |
+| `tweak` | Small behavior or UX polish |
+| `adjust` | Config, tooling, docs, refactor-without-feature |
+
+Format: `prefix(scope): imperative summary` — scope optional, ~72 chars max, no trailing period.
+
+Examples: `feat(crypto): add WASM encode_address from pubkeys`, `fix(address): reject padded base58 payloads`
+
+## Output modes
+
+Offer **all three** unless the user asks for one only:
+
+### 1 — One line
+
+Subject only. Copy-paste ready.
+
+### 2 — Short
+
+Subject + one blank line + 1–2 sentences on **why**, not a file list.
+
+### 3 — Long
+
+Subject + blank line + short intro paragraph (optional) + bullets:
+
+```text
+- path/to/file — what changed (fixed / implemented / removed)
+```
+
+Rules for long bullets:
+
+- One bullet per **logical** change; group trivial files if needed
+- Path relative to repo root
+- Verb: fixed, implemented, added, removed, updated, documented
+- Skip generated noise unless the change itself matters (e.g. WASM rebuild)
+- Order: core logic → tests → docs → tooling
+
+## Quality bar
+
+- Subject describes **why/outcome**, not "update files"
+- Match recent repo tone from `git log`
+- Do not claim fixes not present in the diff
+- Do not mention secrets or `.env` content
+- If the diff mixes unrelated concerns, note that the user may want split commits
+
+## Example
+
+**Staged:** `rust/crypto/src/address.rs`, `test/benchmark.js`, `biome.json`
+
+**One line:**
+```text
+feat(crypto): canonical Rust address encode/decode with JS/WASM parity
+```
+
+**Short:**
+```text
+feat(crypto): canonical Rust address encode/decode with JS/WASM parity
+
+Unblocks view-only wallets and integrated addresses via crypto.* while keeping
+the zero-init address.* tier for callers that skip WASM init.
+```
+
+**Long:**
+```text
+feat(crypto): canonical Rust address encode/decode with JS/WASM parity
+
+Move address logic to Rust as source of truth; keep JS mirror for zero-init paths.
+
+- rust/crypto/src/address.rs — implemented encode_integrated_address, decode_address_full, exact-length check
+- rust/crypto/src/lib.rs — exported crypto.encode_address / encode_integrated_address / decode_address
+- src/js/address.js — documented hybrid tier; unchanged public API
+- test/benchmark.js — added JS vs WASM benchmark table (bulk + single call)
+- test/test-address.js — WASM parity tests for integrated payment ID
+- biome.json — expanded lint scope; exclude wasm glue and legacy tiers
+- README.md — documented serializer APIs and dual-tier address model
+```
