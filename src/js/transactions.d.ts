@@ -89,6 +89,72 @@ export function ownsTx(tx: TxScanInput, ctx: TxScanContext): boolean;
  * @returns {boolean[]}
  */
 export function ownsTxBatch(txs: TxScanInput[], ctx: TxScanContext): boolean[];
+/**
+ * @typedef {Object} TxSerializeVinTarget
+ * @property {string} type - Input type (`"input_to_key"` or `"input_to_deposit_key"`).
+ * @property {number | string} [amount] - Input amount (uint64; pass large values as strings).
+ * @property {number[]} [key_offsets] - Relative ring offsets (`input_to_key`).
+ * @property {string} [k_image] - 64-char hex key image (`input_to_key`).
+ * @property {number | string} [outputIndex] - Deposit output index (`input_to_deposit_key`).
+ * @property {number | string} [term] - Deposit term in blocks (`input_to_deposit_key`).
+ * @property {number} [signatures] - Expected signature count for `input_to_deposit_key`.
+ */
+/**
+ * @typedef {Object} TxSerializeVoutTargetData
+ * @property {string} [key] - 64-char hex output public key (`txout_to_key`).
+ * @property {string[]} [keys] - 64-char hex output keys (`txout_to_deposit_key`).
+ * @property {number | string} [term] - Deposit term in blocks (`txout_to_deposit_key`).
+ */
+/**
+ * @typedef {Object} TxSerializeVoutTarget
+ * @property {string} type - Target type (`"txout_to_key"` or `"txout_to_deposit_key"`).
+ * @property {TxSerializeVoutTargetData} data - Target payload.
+ */
+/**
+ * @typedef {Object} TxSerializeVout
+ * @property {number | string} amount - Output amount (uint64; pass large values as strings).
+ * @property {TxSerializeVoutTarget} target - Output target.
+ */
+/**
+ * @typedef {Object} TxToSerialize
+ * @property {number | string} version - Transaction version (uint64).
+ * @property {number | string} unlock_time - Unlock time / block height (uint64).
+ * @property {TxSerializeVinTarget[]} vin - Transaction inputs.
+ * @property {TxSerializeVout[]} vout - Transaction outputs.
+ * @property {string} extra - `extra` field as an even-length hex string.
+ * @property {string[][]} signatures - Per-input ring signatures (omitted when serializing header only).
+ */
+/**
+ * @typedef {Object} TxSerializeWithHash
+ * @property {string} raw - Full serialized transaction hex (prefix + signatures).
+ * @property {string} hash - `cn_fast_hash` of the full serialized transaction.
+ */
+/**
+ * Serialize a CryptoNote transaction to broadcast-ready hex (non-RingCT / plain
+ * ring-signature path only). Ported byte-for-byte from `CnTransactions.serialize_tx`
+ * in conceal-web-wallet's `Cn.ts`.
+ *
+ * @param {TxToSerialize} tx - Transaction to serialize.
+ * @param {boolean} [headerOnly] - When `true`, emit only the prefix (no signatures).
+ * @returns {string} Serialized transaction hex.
+ */
+export function serializeTransaction(tx: TxToSerialize, headerOnly?: boolean): string;
+/**
+ * Compute the transaction prefix hash (`cn_fast_hash` of the header-only serialization).
+ * Ported from `CnTransactions.get_tx_prefix_hash`.
+ *
+ * @param {TxToSerialize} tx - Transaction to hash.
+ * @returns {string} 64-char hex prefix hash.
+ */
+export function getTransactionPrefixHash(tx: TxToSerialize): string;
+/**
+ * Serialize a transaction and compute its full hash.
+ * Ported from `CnTransactions.serialize_tx_with_hash`.
+ *
+ * @param {TxToSerialize} tx - Transaction to serialize.
+ * @returns {TxSerializeWithHash}
+ */
+export function serializeTransactionWithHash(tx: TxToSerialize): TxSerializeWithHash;
 export const TX_EXTRA_TAG_PADDING: 0;
 export const TX_EXTRA_TAG_PUBKEY: 1;
 export const TX_EXTRA_NONCE: 2;
@@ -175,4 +241,104 @@ export type ReceiveOutputChecks = {
      * - On-chain output public keys (64-char hex).
      */
     keys: string[];
+};
+export type TxSerializeVinTarget = {
+    /**
+     * - Input type (`"input_to_key"` or `"input_to_deposit_key"`).
+     */
+    type: string;
+    /**
+     * - Input amount (uint64; pass large values as strings).
+     */
+    amount?: number | string;
+    /**
+     * - Relative ring offsets (`input_to_key`).
+     */
+    key_offsets?: number[];
+    /**
+     * - 64-char hex key image (`input_to_key`).
+     */
+    k_image?: string;
+    /**
+     * - Deposit output index (`input_to_deposit_key`).
+     */
+    outputIndex?: number | string;
+    /**
+     * - Deposit term in blocks (`input_to_deposit_key`).
+     */
+    term?: number | string;
+    /**
+     * - Expected signature count for `input_to_deposit_key`.
+     */
+    signatures?: number;
+};
+export type TxSerializeVoutTargetData = {
+    /**
+     * - 64-char hex output public key (`txout_to_key`).
+     */
+    key?: string;
+    /**
+     * - 64-char hex output keys (`txout_to_deposit_key`).
+     */
+    keys?: string[];
+    /**
+     * - Deposit term in blocks (`txout_to_deposit_key`).
+     */
+    term?: number | string;
+};
+export type TxSerializeVoutTarget = {
+    /**
+     * - Target type (`"txout_to_key"` or `"txout_to_deposit_key"`).
+     */
+    type: string;
+    /**
+     * - Target payload.
+     */
+    data: TxSerializeVoutTargetData;
+};
+export type TxSerializeVout = {
+    /**
+     * - Output amount (uint64; pass large values as strings).
+     */
+    amount: number | string;
+    /**
+     * - Output target.
+     */
+    target: TxSerializeVoutTarget;
+};
+export type TxToSerialize = {
+    /**
+     * - Transaction version (uint64).
+     */
+    version: number | string;
+    /**
+     * - Unlock time / block height (uint64).
+     */
+    unlock_time: number | string;
+    /**
+     * - Transaction inputs.
+     */
+    vin: TxSerializeVinTarget[];
+    /**
+     * - Transaction outputs.
+     */
+    vout: TxSerializeVout[];
+    /**
+     * - `extra` field as an even-length hex string.
+     */
+    extra: string;
+    /**
+     * - Per-input ring signatures (omitted when serializing header only).
+     */
+    signatures: string[][];
+};
+export type TxSerializeWithHash = {
+    /**
+     * - Full serialized transaction hex (prefix + signatures).
+     */
+    raw: string;
+    /**
+     * - `cn_fast_hash` of the full serialized transaction.
+     */
+    hash: string;
 };

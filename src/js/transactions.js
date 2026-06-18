@@ -7,7 +7,14 @@
  * @module transactions
  */
 
-import { bintohex, hextobin } from "./cnutils.js";
+import {
+  bintohex,
+  cn_fast_hash,
+  encode_varint,
+  encode_varint_term,
+  hextobin,
+  valid_hex,
+} from "./cnutils.js";
 import {
   scan_receive_outputs,
   scan_receive_outputs_batch,
@@ -358,4 +365,194 @@ export function ownsTxBatch(txs, ctx) {
     }
   }
   return results;
+}
+
+/**
+ * @typedef {Object} TxSerializeVinTarget
+ * @property {string} type - Input type (`"input_to_key"` or `"input_to_deposit_key"`).
+ * @property {number | string} [amount] - Input amount (uint64; pass large values as strings).
+ * @property {number[]} [key_offsets] - Relative ring offsets (`input_to_key`).
+ * @property {string} [k_image] - 64-char hex key image (`input_to_key`).
+ * @property {number | string} [outputIndex] - Deposit output index (`input_to_deposit_key`).
+ * @property {number | string} [term] - Deposit term in blocks (`input_to_deposit_key`).
+ * @property {number} [signatures] - Expected signature count for `input_to_deposit_key`.
+ */
+
+/**
+ * @typedef {Object} TxSerializeVoutTargetData
+ * @property {string} [key] - 64-char hex output public key (`txout_to_key`).
+ * @property {string[]} [keys] - 64-char hex output keys (`txout_to_deposit_key`).
+ * @property {number | string} [term] - Deposit term in blocks (`txout_to_deposit_key`).
+ */
+
+/**
+ * @typedef {Object} TxSerializeVoutTarget
+ * @property {string} type - Target type (`"txout_to_key"` or `"txout_to_deposit_key"`).
+ * @property {TxSerializeVoutTargetData} data - Target payload.
+ */
+
+/**
+ * @typedef {Object} TxSerializeVout
+ * @property {number | string} amount - Output amount (uint64; pass large values as strings).
+ * @property {TxSerializeVoutTarget} target - Output target.
+ */
+
+/**
+ * @typedef {Object} TxToSerialize
+ * @property {number | string} version - Transaction version (uint64).
+ * @property {number | string} unlock_time - Unlock time / block height (uint64).
+ * @property {TxSerializeVinTarget[]} vin - Transaction inputs.
+ * @property {TxSerializeVout[]} vout - Transaction outputs.
+ * @property {string} extra - `extra` field as an even-length hex string.
+ * @property {string[][]} signatures - Per-input ring signatures (omitted when serializing header only).
+ */
+
+/**
+ * @typedef {Object} TxSerializeWithHash
+ * @property {string} raw - Full serialized transaction hex (prefix + signatures).
+ * @property {string} hash - `cn_fast_hash` of the full serialized transaction.
+ */
+
+/**
+ * Serialize a CryptoNote transaction to broadcast-ready hex (non-RingCT / plain
+ * ring-signature path only). Ported byte-for-byte from `CnTransactions.serialize_tx`
+ * in conceal-web-wallet's `Cn.ts`.
+ *
+ * @param {TxToSerialize} tx - Transaction to serialize.
+ * @param {boolean} [headerOnly] - When `true`, emit only the prefix (no signatures).
+ * @returns {string} Serialized transaction hex.
+ */
+export function serializeTransaction(tx, headerOnly = false) {
+  let buf = "";
+  buf += encode_varint(tx.version);
+  buf += encode_varint(tx.unlock_time);
+  buf += encode_varint(tx.vin.length);
+
+  for (let i = 0; i < tx.vin.length; i++) {
+    const vin = tx.vin[i];
+    switch (vin.type) {
+      case "input_to_key": {
+        buf += "02";
+        buf += encode_varint(vin.amount);
+        const keyOffsets = vin.key_offsets || [];
+        buf += encode_varint(keyOffsets.length);
+        for (let j = 0; j < keyOffsets.length; j++) {
+          buf += encode_varint(keyOffsets[j]);
+        }
+        if (typeof vin.k_image !== "string" || vin.k_image.length !== 64) {
+          throw new Error("input_to_key requires a 64-char k_image hex");
+        }
+        buf += vin.k_image;
+        break;
+      }
+      case "input_to_deposit_key": {
+        buf += "03";
+        buf += encode_varint(vin.amount);
+        buf += encode_varint(1); // always 1 for deposits/withdrawals
+        buf += encode_varint(vin.outputIndex || 0);
+        buf += encode_varint(vin.term || 0);
+        break;
+      }
+      default:
+        throw new Error(`Unhandled vin type: ${vin.type}`);
+    }
+  }
+
+  buf += encode_varint(tx.vout.length);
+  for (let i = 0; i < tx.vout.length; i++) {
+    const vout = tx.vout[i];
+    buf += encode_varint(vout.amount);
+    switch (vout.target.type) {
+      case "txout_to_key": {
+        buf += "02";
+        if (typeof vout.target.data.key !== "string" || vout.target.data.key.length !== 64) {
+          throw new Error("txout_to_key requires a 64-char key hex");
+        }
+        buf += vout.target.data.key;
+        break;
+      }
+      case "txout_to_deposit_key": {
+        buf += "03";
+        const keys = vout.target.data.keys || [];
+        buf += encode_varint(keys.length); // varint for number of keys, only one for deposit
+        for (let j = 0; j < keys.length; j++) {
+          if (typeof keys[j] !== "string" || keys[j].length !== 64) {
+            throw new Error("txout_to_deposit_key requires 64-char key hex");
+          }
+          buf += keys[j];
+        }
+        buf += encode_varint(1); // requiredSignatureCount is always 1 for deposits
+        buf += encode_varint_term(vout.target.data.term || 0); // term in blocks
+        break;
+      }
+      default:
+        throw new Error(`Unhandled txout target type: ${vout.target.type}`);
+    }
+  }
+
+  // Must be an EVEN-length hex string: valid_hex only checks the alphabet, so an
+  // odd-length extra would make `extra.length / 2` fractional and silently
+  // corrupt the byte count + append a half-byte. Also guards against undefined.
+  if (typeof tx.extra !== "string" || !valid_hex(tx.extra) || tx.extra.length % 2 !== 0) {
+    throw new Error("Tx extra must be an even-length hex string");
+  }
+
+  buf += encode_varint(tx.extra.length / 2); // extra is stored as a hex string
+  buf += tx.extra;
+
+  if (!headerOnly) {
+    if (tx.vin.length !== tx.signatures.length) {
+      throw new Error("Signatures length != vin length");
+    }
+    for (let i = 0; i < tx.vin.length; i++) {
+      const vin = tx.vin[i];
+      let expectedSignatures;
+      if (vin.type === "input_to_deposit_key") {
+        // The prefix commits to exactly 1 required signature (encode_varint(1)),
+        // so the appended signature count must be 1 — don't trust vin.signatures.
+        expectedSignatures = 1;
+      } else if (vin.type === "input_to_key") {
+        expectedSignatures = (vin.key_offsets || []).length;
+      } else {
+        expectedSignatures = 0;
+      }
+      if (tx.signatures[i].length !== expectedSignatures) {
+        throw new Error(
+          `Unexpected signature count for input ${i}: expected ${expectedSignatures}, got ${tx.signatures[i].length}`,
+        );
+      }
+      for (let j = 0; j < tx.signatures[i].length; j++) {
+        buf += tx.signatures[i][j];
+      }
+    }
+  }
+
+  return buf;
+}
+
+/**
+ * Compute the transaction prefix hash (`cn_fast_hash` of the header-only serialization).
+ * Ported from `CnTransactions.get_tx_prefix_hash`.
+ *
+ * @param {TxToSerialize} tx - Transaction to hash.
+ * @returns {string} 64-char hex prefix hash.
+ */
+export function getTransactionPrefixHash(tx) {
+  const prefix = serializeTransaction(tx, true);
+  return cn_fast_hash(prefix);
+}
+
+/**
+ * Serialize a transaction and compute its full hash.
+ * Ported from `CnTransactions.serialize_tx_with_hash`.
+ *
+ * @param {TxToSerialize} tx - Transaction to serialize.
+ * @returns {TxSerializeWithHash}
+ */
+export function serializeTransactionWithHash(tx) {
+  const raw = serializeTransaction(tx, false);
+  return {
+    raw,
+    hash: cn_fast_hash(raw),
+  };
 }
