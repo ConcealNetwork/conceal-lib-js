@@ -193,12 +193,13 @@ const owned = transactions.ownsTx(
 > The WASM `crypto.create_address` / `crypto.decode_address` remain the seed-based path;
 > `address.encode_address` reproduces their output byte-for-byte (verified by parity tests).
 
-Exported constants: `ADDRESS_PREFIX` (`0x7ad4`), `INTEGRATED_ADDRESS_PREFIX` (`0x7ad5`), `ADDRESS_CHECKSUM_SIZE` (4), `INTEGRATED_ID_SIZE` (8).
+Exported constants: `ADDRESS_PREFIX` (`0x7ad4`), `INTEGRATED_ADDRESS_PREFIX` (`0x7ad5`), `SUBADDRESS_PREFIX` (`0x7ad6`), `ADDRESS_CHECKSUM_SIZE` (4), `INTEGRATED_ID_SIZE` (8).
 
 | Function | Parameters | Returns | Notes |
 |---|---|---|---|
 | `encode_address(spendPub, viewPub)` | two 64-char hex public keys | Base58 CCX address | `varint(ADDRESS_PREFIX) + spend + view + checksum`; throws on bad hex/length |
 | `encode_integrated_address(spendPub, viewPub, paymentId)` | two 64-char hex keys + 16-char hex payment ID | Base58 CCX integrated address | `varint(INTEGRATED_ADDRESS_PREFIX) + spend + view + paymentId + checksum`; throws on bad input |
+| `decode_address(address)` | Base58 CCX address | `{ spend, view, intPaymentId }` | Validates prefix + checksum. **Surfaces `intPaymentId` for integrated addresses** (the WASM `crypto.decode_address` always returns `null`). |
 | `base58_encode(hex)` / `base58_decode(b58)` | hex ↔ base58 | base58 / hex | CryptoNote block-based base58 (re-exported from `base58.js`) |
 
 **Low-level base58 (`src/js/base58.js`):** `encode(hex)` / `decode(b58)` — block-based CryptoNote base58 (8-byte blocks → 11 chars), native `BigInt`. Throws `Invalid block size` / `Overflow` / `Invalid symbol` / `Invalid encoded length` on malformed input.

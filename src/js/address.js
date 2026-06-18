@@ -19,6 +19,8 @@ import { cn_fast_hash, encode_varint, valid_hex } from './cnutils.js';
 export const ADDRESS_PREFIX = 0x7ad4;
 /** CCX mainnet integrated address prefix. */
 export const INTEGRATED_ADDRESS_PREFIX = 0x7ad5;
+/** CCX mainnet subaddress prefix. */
+export const SUBADDRESS_PREFIX = 0x7ad6;
 /** Address checksum length in bytes (8 hex chars). */
 export const ADDRESS_CHECKSUM_SIZE = 4;
 /** Integrated payment ID length in bytes (16 hex chars). */
@@ -71,6 +73,69 @@ export function encode_integrated_address(spendPub, viewPub, paymentId) {
   const data = prefix + spendPub.toLowerCase() + viewPub.toLowerCase() + paymentId.toLowerCase();
   const checksum = cn_fast_hash(data).slice(0, ADDRESS_CHECKSUM_SIZE * 2);
   return base58.encode(data + checksum);
+}
+
+/**
+ * Decode a CCX address (standard, integrated, or subaddress) to its spend +
+ * view public keys, plus the embedded payment ID for integrated addresses.
+ * Validates the network prefix and the Keccak-256 checksum.
+ *
+ * Unlike the WASM `crypto.decode_address`, this surfaces `intPaymentId` for
+ * integrated addresses (the WASM decoder always returns `null`).
+ *
+ * @param {string} address - Base58 CCX address.
+ * @returns {{ spend: string, view: string, intPaymentId: string | null }}
+ */
+export function decode_address(address) {
+  if (typeof address !== 'string' || address.length === 0) {
+    throw new Error('address must be a non-empty string');
+  }
+  const dec = base58.decode(address);
+
+  const addrPrefix = encode_varint(ADDRESS_PREFIX);
+  const intPrefix = encode_varint(INTEGRATED_ADDRESS_PREFIX);
+  const subPrefix = encode_varint(SUBADDRESS_PREFIX);
+  const prefix = dec.slice(0, addrPrefix.length);
+  if (prefix !== addrPrefix && prefix !== intPrefix && prefix !== subPrefix) {
+    throw new Error('Invalid address prefix');
+  }
+
+  const checksumHexLen = ADDRESS_CHECKSUM_SIZE * 2;
+  const PUBKEYS_HEX_LEN = 128; // spend (64) + view (64)
+  // Enforce an exact decoded length so trailing bytes can't be appended to a
+  // valid address: the checksum sits at a fixed offset over prefix+spend+view,
+  // so without this an attacker could pad the payload and still pass validation
+  // (decoding to the same keys). Reject non-canonical lengths up front.
+  const expectedLen =
+    addrPrefix.length +
+    PUBKEYS_HEX_LEN +
+    (prefix === intPrefix ? INTEGRATED_ID_HEX_LENGTH : 0) +
+    checksumHexLen;
+  if (dec.length !== expectedLen) {
+    throw new Error('Invalid address length');
+  }
+
+  const body = dec.slice(addrPrefix.length);
+  const spend = body.slice(0, 64);
+  const view = body.slice(64, 128);
+
+  let intPaymentId = null;
+  let checksum;
+  let expectedChecksum;
+  if (prefix === intPrefix) {
+    const idEnd = 128 + INTEGRATED_ID_HEX_LENGTH;
+    intPaymentId = body.slice(128, idEnd);
+    checksum = body.slice(idEnd, idEnd + checksumHexLen);
+    expectedChecksum = cn_fast_hash(prefix + spend + view + intPaymentId).slice(0, checksumHexLen);
+  } else {
+    checksum = body.slice(128, 128 + checksumHexLen);
+    expectedChecksum = cn_fast_hash(prefix + spend + view).slice(0, checksumHexLen);
+  }
+  if (!checksum || checksum !== expectedChecksum) {
+    throw new Error('Invalid checksum');
+  }
+
+  return { spend, view, intPaymentId };
 }
 
 export { decode as base58_decode, encode as base58_encode } from './base58.js';

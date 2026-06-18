@@ -2,6 +2,8 @@
 export const ADDRESS_PREFIX: 31444;
 /** CCX mainnet integrated address prefix. */
 export const INTEGRATED_ADDRESS_PREFIX: 31445;
+/** CCX mainnet subaddress prefix. */
+export const SUBADDRESS_PREFIX: 31446;
 /** Address checksum length in bytes (8 hex chars). */
 export const ADDRESS_CHECKSUM_SIZE: 4;
 /** Integrated payment ID length in bytes (16 hex chars). */
@@ -27,4 +29,16 @@ export function encode_integrated_address(
   viewPub: string,
   paymentId: string,
 ): string;
+/**
+ * Decode a CCX address (standard, integrated, or subaddress) to spend + view
+ * public keys, surfacing the integrated payment ID. Validates prefix + checksum.
+ *
+ * @param {string} address - Base58 CCX address.
+ * @returns Spend/view public keys and `intPaymentId` (null when not integrated).
+ */
+export function decode_address(address: string): {
+  spend: string;
+  view: string;
+  intPaymentId: string | null;
+};
 export { decode as base58_decode, encode as base58_encode } from "./base58.js";
