@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: monospace;
-      max-width: 860px;
+      max-width: 1060px;
       margin: 2rem auto;
       background: #1a1a2e;
       color: #e0e0e0;
@@ -27,12 +27,44 @@
     p { margin: 0.25rem 0; font-size: 0.95rem; }
     .pass { color: #4caf80; }
     .fail { color: #f44336; }
+    .bench-meta { color: #888; font-size: 0.85rem; margin-bottom: 0.75rem; }
+    .bench-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 0.5rem;
+    }
+    .bench-table th,
+    .bench-table td {
+      border: 1px solid #333;
+      padding: 0.35rem 0.45rem;
+      text-align: right;
+    }
+    .bench-table th:first-child,
+    .bench-table td:first-child,
+    .bench-table th:nth-child(2),
+    .bench-table td:nth-child(2) {
+      text-align: left;
+    }
+    .bench-table thead th {
+      color: #00d4aa;
+      font-weight: normal;
+      background: #222238;
+    }
+    .bench-winner-js { color: #4caf80; }
+    .bench-winner-wasm { color: #64b5f6; }
+    .bench-skip { color: #888; text-align: left !important; font-style: italic; }
+    #benchmarks { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #333; }
   </style>
 </head>
 <body>
   <h1>concealjs</h1>
   <h2>WASM test suite — open DevTools console for detail</h2>
   <div id="results"><em>Running…</em></div>
+  <section id="benchmarks">
+    <h3>benchmark</h3>
+    <div id="benchmark-results"><em>Running after tests…</em></div>
+  </section>
   <script type="importmap">
   {
     "imports": {

@@ -4,11 +4,9 @@
  * @module cn
  */
 
-'use strict';
-
-import wasmCrypto from '#cnutils-wasm';
-import { rand32 } from './random.js';
-import { derivation_to_scalar, ge_sub } from './cnutils.js';
+import wasmCrypto from "#cnutils-wasm";
+import { derivation_to_scalar, ge_sub } from "./cnutils.js";
+import { rand32 } from "./random.js";
 
 const { generate_keys, ge_scalarmult_base } = wasmCrypto;
 
@@ -38,7 +36,7 @@ export function random_keypair() {
  */
 export function underive_public_key(derivation, out_index, pub) {
   if (derivation.length !== 64 || pub.length !== 64) {
-    throw new Error('Invalid input length');
+    throw new Error("Invalid input length");
   }
   const s = derivation_to_scalar(derivation, out_index);
   return ge_sub(pub, ge_scalarmult_base(s));

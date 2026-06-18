@@ -30,18 +30,18 @@ export async function runCypherTests(log) {
     const cipher = chacha8(key, nonce, plain);
     const recovered = chacha8(key, nonce, cipher);
     const ok = equal(recovered, plain);
-    log("chacha8 encrypt→decrypt round-trip: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha8 encrypt→decrypt round-trip: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha8 round-trip failed: " + e, false);
+    log(`chacha8 round-trip failed: ${e}`, false);
   }
 
   // ── Test 2: chacha8 ciphertext differs from plaintext ────────────────────
   try {
     const cipher = chacha8(key, nonce, plain);
     const ok = !equal(cipher, plain);
-    log("chacha8 ciphertext ≠ plaintext: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha8 ciphertext ≠ plaintext: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha8 ciphertext check failed: " + e, false);
+    log(`chacha8 ciphertext check failed: ${e}`, false);
   }
 
   // ── Test 3: chacha8 is deterministic ─────────────────────────────────────
@@ -49,9 +49,9 @@ export async function runCypherTests(log) {
     const c1 = chacha8(key, nonce, plain);
     const c2 = chacha8(key, nonce, plain);
     const ok = equal(c1, c2);
-    log("chacha8 is deterministic: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha8 is deterministic: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha8 determinism check failed: " + e, false);
+    log(`chacha8 determinism check failed: ${e}`, false);
   }
 
   // ── Test 4: chacha8 different nonce → different ciphertext ───────────────
@@ -66,7 +66,7 @@ export async function runCypherTests(log) {
       ok,
     );
   } catch (e) {
-    log("chacha8 nonce sensitivity check failed: " + e, false);
+    log(`chacha8 nonce sensitivity check failed: ${e}`, false);
   }
 
   // ── Test 5: chacha8 rejects wrong key length ──────────────────────────────
@@ -74,7 +74,7 @@ export async function runCypherTests(log) {
     chacha8(randomBytes(16), nonce, plain);
     log("chacha8 should have rejected 16-byte key", false);
   } catch (e) {
-    log("chacha8 correctly rejected 16-byte key: " + e, true);
+    log(`chacha8 correctly rejected 16-byte key: ${e}`, true);
   }
 
   // ── Test 6: chacha8 rejects wrong nonce length ───────────────────────────
@@ -82,7 +82,7 @@ export async function runCypherTests(log) {
     chacha8(key, randomBytes(8), plain);
     log("chacha8 should have rejected 8-byte nonce", false);
   } catch (e) {
-    log("chacha8 correctly rejected 8-byte nonce: " + e, true);
+    log(`chacha8 correctly rejected 8-byte nonce: ${e}`, true);
   }
 
   // ── Test 7: chacha12 encrypt/decrypt round-trip ───────────────────────────
@@ -90,18 +90,18 @@ export async function runCypherTests(log) {
     const cipher = chacha12(key, nonce, plain);
     const recovered = chacha12(key, nonce, cipher);
     const ok = equal(recovered, plain);
-    log("chacha12 encrypt→decrypt round-trip: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha12 encrypt→decrypt round-trip: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha12 round-trip failed: " + e, false);
+    log(`chacha12 round-trip failed: ${e}`, false);
   }
 
   // ── Test 8: chacha12 ciphertext differs from plaintext ───────────────────
   try {
     const cipher = chacha12(key, nonce, plain);
     const ok = !equal(cipher, plain);
-    log("chacha12 ciphertext ≠ plaintext: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha12 ciphertext ≠ plaintext: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha12 ciphertext check failed: " + e, false);
+    log(`chacha12 ciphertext check failed: ${e}`, false);
   }
 
   // ── Test 9: chacha8 and chacha12 produce different outputs ───────────────
@@ -109,9 +109,9 @@ export async function runCypherTests(log) {
     const c8 = chacha8(key, nonce, plain);
     const c12 = chacha12(key, nonce, plain);
     const ok = !equal(c8, c12);
-    log("chacha8 ≠ chacha12 for same inputs: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha8 ≠ chacha12 for same inputs: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha8 vs chacha12 comparison failed: " + e, false);
+    log(`chacha8 vs chacha12 comparison failed: ${e}`, false);
   }
 
   // ── Test 10: chacha12 rejects wrong key length ───────────────────────────
@@ -119,7 +119,7 @@ export async function runCypherTests(log) {
     chacha12(randomBytes(16), nonce, plain);
     log("chacha12 should have rejected 16-byte key", false);
   } catch (e) {
-    log("chacha12 correctly rejected 16-byte key: " + e, true);
+    log(`chacha12 correctly rejected 16-byte key: ${e}`, true);
   }
 
   // ── Test 11: chacha12 different nonce → different ciphertext ─────────────
@@ -134,7 +134,7 @@ export async function runCypherTests(log) {
       ok,
     );
   } catch (e) {
-    log("chacha12 nonce sensitivity check failed: " + e, false);
+    log(`chacha12 nonce sensitivity check failed: ${e}`, false);
   }
 
   // ── Test 12: chacha12 rejects wrong nonce length ──────────────────────────
@@ -142,7 +142,7 @@ export async function runCypherTests(log) {
     chacha12(key, randomBytes(8), plain);
     log("chacha12 should have rejected 8-byte nonce", false);
   } catch (e) {
-    log("chacha12 correctly rejected 8-byte nonce: " + e, true);
+    log(`chacha12 correctly rejected 8-byte nonce: ${e}`, true);
   }
 
   // ── Test 13: chacha20 encrypt/decrypt round-trip ─────────────────────────
@@ -150,9 +150,9 @@ export async function runCypherTests(log) {
     const cipher = chacha20(key, nonce, plain);
     const recovered = chacha20(key, nonce, cipher);
     const ok = equal(recovered, plain);
-    log("chacha20 encrypt→decrypt round-trip: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha20 encrypt→decrypt round-trip: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha20 round-trip failed: " + e, false);
+    log(`chacha20 round-trip failed: ${e}`, false);
   }
 
   // ── Test 14: chacha12 and chacha20 produce different outputs ─────────────
@@ -160,8 +160,8 @@ export async function runCypherTests(log) {
     const c12 = chacha12(key, nonce, plain);
     const c20 = chacha20(key, nonce, plain);
     const ok = !equal(c12, c20);
-    log("chacha12 ≠ chacha20 for same inputs: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`chacha12 ≠ chacha20 for same inputs: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("chacha12 vs chacha20 comparison failed: " + e, false);
+    log(`chacha12 vs chacha20 comparison failed: ${e}`, false);
   }
 }

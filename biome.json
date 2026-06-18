@@ -1,12 +1,31 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "files": {
-    "includes": ["package.json", "test/**/*.js"]
+    "includes": [
+      "package.json",
+      "src/**/*.js",
+      "!src/wasm",
+      "!src/wasm-browser",
+      "!src/js/tiers",
+      "test/**/*.js",
+      "!test/wasm"
+    ]
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "style": {
+        "useTemplate": "warn"
+      },
+      "correctness": {
+        "noInnerDeclarations": "warn"
+      },
+      "suspicious": {
+        "noDoubleEquals": "warn",
+        "noAssignInExpressions": "warn",
+        "noRedeclare": "warn"
+      }
     }
   },
   "formatter": {

@@ -25,18 +25,18 @@ export async function runCnutilsTests(log) {
   try {
     const empty = keccak_256(new Uint8Array(0));
     const ok = empty === KECCAK_EMPTY;
-    log("keccak_256(empty) known vector: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`keccak_256(empty) known vector: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("keccak_256(empty) failed: " + e, false);
+    log(`keccak_256(empty) failed: ${e}`, false);
   }
 
   try {
     const fromBytes = keccak_256(cnutils.hextobin(SEED));
     const fromCn = cnutils.cn_fast_hash(SEED);
     const ok = fromBytes === fromCn;
-    log("cn_fast_hash === keccak_256(hextobin): " + (ok ? "PASS" : "FAIL"), ok);
+    log(`cn_fast_hash === keccak_256(hextobin): ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("cn_fast_hash / keccak_256 parity failed: " + e, false);
+    log(`cn_fast_hash / keccak_256 parity failed: ${e}`, false);
   }
 
   try {
@@ -45,18 +45,18 @@ export async function runCnutilsTests(log) {
       digest === SHA3_384_ALLOWED_EXCEPTIONS &&
       digest.length === 96 &&
       digest === digest.toLowerCase();
-    log("sha3_384(allowedExceptions): " + (ok ? "PASS" : "FAIL"), ok);
+    log(`sha3_384(allowedExceptions): ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("sha3_384 wallet vector failed: " + e, false);
+    log(`sha3_384 wallet vector failed: ${e}`, false);
   }
 
   try {
     const fromString = sha3_384("test");
     const fromBytes = sha3_384(new TextEncoder().encode("test"));
     const ok = fromString === fromBytes && fromString.length === 96;
-    log("sha3_384 string === UTF-8 bytes: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`sha3_384 string === UTF-8 bytes: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("sha3_384 input types failed: " + e, false);
+    log(`sha3_384 input types failed: ${e}`, false);
   }
 
   try {
@@ -69,7 +69,7 @@ export async function runCnutilsTests(log) {
       ok,
     );
   } catch (e) {
-    log("cn_fast_hash WASM cross-check failed: " + e, false);
+    log(`cn_fast_hash WASM cross-check failed: ${e}`, false);
   }
 
   // ── hex helpers ───────────────────────────────────────────────────────────
@@ -79,41 +79,41 @@ export async function runCnutilsTests(log) {
       bin.length === 4 &&
       bin[0] === 0xde &&
       cnutils.bintohex(bin) === "deadbeef";
-    log("hextobin / bintohex round-trip: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`hextobin / bintohex round-trip: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("hextobin / bintohex failed: " + e, false);
+    log(`hextobin / bintohex failed: ${e}`, false);
   }
 
   try {
     const ok = cnutils.swapEndian("aabbcc") === "ccbbaa";
-    log("swapEndian: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`swapEndian: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("swapEndian failed: " + e, false);
+    log(`swapEndian failed: ${e}`, false);
   }
 
   try {
     const ok = cnutils.valid_hex("0123abcd") && !cnutils.valid_hex("0123abcg");
-    log("valid_hex: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`valid_hex: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("valid_hex failed: " + e, false);
+    log(`valid_hex failed: ${e}`, false);
   }
 
   try {
     const ok =
       cnutils.hex_xor("ff00", "0f0f") === "f00f" &&
       cnutils.hex_xor("aa", "aa") === "00";
-    log("hex_xor: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`hex_xor: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("hex_xor failed: " + e, false);
+    log(`hex_xor failed: ${e}`, false);
   }
 
   // ── integers / varint ─────────────────────────────────────────────────────
   try {
     const ok =
       cnutils.encode_varint(0) === "00" && cnutils.encode_varint(127) === "7f";
-    log("encode_varint(0, 127): " + (ok ? "PASS" : "FAIL"), ok);
+    log(`encode_varint(0, 127): ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("encode_varint failed: " + e, false);
+    log(`encode_varint failed: ${e}`, false);
   }
 
   try {
@@ -122,9 +122,9 @@ export async function runCnutilsTests(log) {
       typeof scalar8 === "string" &&
       scalar8.length === 64 &&
       cnutils.valid_hex(scalar8);
-    log("d2s(8) → 64-char hex: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`d2s(8) → 64-char hex: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("d2s failed: " + e, false);
+    log(`d2s failed: ${e}`, false);
   }
 
   try {
@@ -133,9 +133,9 @@ export async function runCnutilsTests(log) {
       digits.length === 5 &&
       digits[0].toString() === "10000" &&
       digits[4].toString() === "5";
-    log("decompose_amount_into_digits(12345): " + (ok ? "PASS" : "FAIL"), ok);
+    log(`decompose_amount_into_digits(12345): ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("decompose_amount_into_digits failed: " + e, false);
+    log(`decompose_amount_into_digits failed: ${e}`, false);
   }
 
   // ── curve (nacl.ll) vs crypto WASM ────────────────────────────────────────
@@ -144,9 +144,9 @@ export async function runCnutilsTests(log) {
     const pubNacl = cnutils.sec_key_to_pub(reduced);
     const keys = wasmCrypto.generate_keys(SEED);
     const ok = pubNacl === keys.pub;
-    log("sec_key_to_pub === generate_keys.pub: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`sec_key_to_pub === generate_keys.pub: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("sec_key_to_pub failed: " + e, false);
+    log(`sec_key_to_pub failed: ${e}`, false);
   }
 
   try {
@@ -157,11 +157,11 @@ export async function runCnutilsTests(log) {
     );
     const ok = cnScalar === wasmScalar;
     log(
-      "derivation_to_scalar vs WASM hash_to_scalar: " + (ok ? "PASS" : "FAIL"),
+      `derivation_to_scalar vs WASM hash_to_scalar: ${ok ? "PASS" : "FAIL"}`,
       ok,
     );
   } catch (e) {
-    log("derivation_to_scalar failed: " + e, false);
+    log(`derivation_to_scalar failed: ${e}`, false);
   }
 
   // ── RCT ECDH (WASM scalar ops) ────────────────────────────────────────────
@@ -175,11 +175,11 @@ export async function runCnutilsTests(log) {
     const dec = cnutils.decode_rct_ecdh(enc, key);
     const ok = dec.mask === plain.mask && dec.amount === plain.amount;
     log(
-      "encode_rct_ecdh / decode_rct_ecdh round-trip: " + (ok ? "PASS" : "FAIL"),
+      `encode_rct_ecdh / decode_rct_ecdh round-trip: ${ok ? "PASS" : "FAIL"}`,
       ok,
     );
   } catch (e) {
-    log("rct ecdh round-trip failed: " + e, false);
+    log(`rct ecdh round-trip failed: ${e}`, false);
   }
 
   // ── hash_to_ec32 / hash_to_ec160 (needs recent crypto WASM build) ─────────
@@ -188,9 +188,9 @@ export async function runCnutilsTests(log) {
       const Pb = wasmCrypto.hash_to_ec32(SPEND_PUB);
       const ok =
         typeof Pb === "string" && Pb.length === 64 && cnutils.valid_hex(Pb);
-      log("hash_to_ec32 → 64-char point: " + (ok ? "PASS" : "FAIL"), ok);
+      log(`hash_to_ec32 → 64-char point: ${ok ? "PASS" : "FAIL"}`, ok);
     } catch (e) {
-      log("hash_to_ec32 failed: " + e, false);
+      log(`hash_to_ec32 failed: ${e}`, false);
     }
   } else {
     log("hash_to_ec32: SKIP (run npm run build:crypto)", true);
@@ -203,9 +203,9 @@ export async function runCnutilsTests(log) {
         typeof p3 === "string" &&
         p3.length === cnutils.STRUCT_SIZES.GE_P3 * 2 &&
         cnutils.valid_hex(p3);
-      log("hash_to_ec160 → GE_P3 hex: " + (ok ? "PASS" : "FAIL"), ok);
+      log(`hash_to_ec160 → GE_P3 hex: ${ok ? "PASS" : "FAIL"}`, ok);
     } catch (e) {
-      log("hash_to_ec160 failed: " + e, false);
+      log(`hash_to_ec160 failed: ${e}`, false);
     }
   } else {
     log("hash_to_ec160: SKIP (run npm run build:crypto)", true);

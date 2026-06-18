@@ -39,8 +39,8 @@ export function create_address(seed_hex: string): any;
 
 /**
  * decode_address: validate and extract spend/view public keys from an address string.
- * Returns `{spend: hex, view: hex, intPaymentId: null}`.
- * Matches `Cn.decode_address(address)`.
+ * Returns `{ spend: hex, view: hex, intPaymentId: hex | null }`.
+ * Surfaces the embedded payment ID for integrated addresses.
  */
 export function decode_address(address: string): any;
 
@@ -55,6 +55,17 @@ export function derive_public_key(derivation_hex: string, out_index: number, bas
  * Matches `CnNativeBride.derive_secret_key(derivation, index, sec)`.
  */
 export function derive_secret_key(derivation_hex: string, out_index: number, base_sec_hex: string): string;
+
+/**
+ * encode_address: build a standard CCX address from spend + view public keys.
+ * Matches `address.encode_address` / `pubkeys_to_string` in conceal-web-wallet.
+ */
+export function encode_address(spend_pub_hex: string, view_pub_hex: string): string;
+
+/**
+ * encode_integrated_address: build a CCX integrated address with an 8-byte payment ID.
+ */
+export function encode_integrated_address(spend_pub_hex: string, view_pub_hex: string, payment_id_hex: string): string;
 
 /**
  * ge_add: point_a + point_b (Edwards addition).
@@ -255,6 +266,8 @@ export interface InitOutput {
     readonly decode_address: (a: number, b: number) => [number, number, number];
     readonly derive_public_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
     readonly derive_secret_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+    readonly encode_address: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly encode_integrated_address: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly ge_add: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly ge_frombytes_vartime: (a: number, b: number) => [number, number, number, number];
     readonly ge_mul8: (a: number, b: number) => [number, number, number, number];

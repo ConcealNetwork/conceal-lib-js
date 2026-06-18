@@ -4,13 +4,30 @@
 //! Integrated address prefix:             31445 (0x7AD5).
 //! Subaddress prefix:                     31446 (0x7AD6).
 
-use crate::{base58, keccak, keys, utils};
+use crate::{base58, keccak, keys};
 
 pub const ADDRESS_PREFIX: u64 = 31444;
 pub const INTEGRATED_ADDRESS_PREFIX: u64 = 31445;
 pub const SUBADDRESS_PREFIX: u64 = 31446;
 
-const ADDRESS_CHECKSUM_SIZE: usize = 4;
+pub const ADDRESS_CHECKSUM_SIZE: usize = 4;
+pub const INTEGRATED_ID_SIZE: usize = 8;
+
+const PUBKEY_SIZE: usize = 32;
+
+/// Decoded address fields (standard, integrated, or subaddress).
+pub struct DecodedAddress {
+    pub spend: [u8; 32],
+    pub view: [u8; 32],
+    pub int_payment_id: Option<[u8; INTEGRATED_ID_SIZE]>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AddressKind {
+    Standard,
+    Integrated,
+    Subaddress,
+}
 
 /// Build the varint-encoded prefix bytes for a given numeric prefix.
 fn prefix_bytes(prefix: u64) -> Vec<u8> {
@@ -19,12 +36,81 @@ fn prefix_bytes(prefix: u64) -> Vec<u8> {
     out
 }
 
+fn match_prefix(dec: &[u8]) -> Result<(AddressKind, usize), String> {
+    let candidates = [
+        (AddressKind::Standard, ADDRESS_PREFIX),
+        (AddressKind::Integrated, INTEGRATED_ADDRESS_PREFIX),
+        (AddressKind::Subaddress, SUBADDRESS_PREFIX),
+    ];
+    for (kind, prefix) in candidates {
+        let pb = prefix_bytes(prefix);
+        if dec.starts_with(&pb) {
+            return Ok((kind, pb.len()));
+        }
+    }
+    Err("invalid address prefix".into())
+}
+
+fn expected_payload_len(kind: AddressKind, prefix_len: usize) -> usize {
+    prefix_len
+        + PUBKEY_SIZE
+        + PUBKEY_SIZE
+        + if kind == AddressKind::Integrated {
+            INTEGRATED_ID_SIZE
+        } else {
+            0
+        }
+        + ADDRESS_CHECKSUM_SIZE
+}
+
+fn slice32(data: &[u8], start: usize) -> Result<[u8; 32], String> {
+    data.get(start..start + PUBKEY_SIZE)
+        .ok_or_else(|| String::from("invalid address length"))?
+        .try_into()
+        .map_err(|_| String::from("invalid address length"))
+}
+
+fn slice8(data: &[u8], start: usize) -> Result<[u8; INTEGRATED_ID_SIZE], String> {
+    data.get(start..start + INTEGRATED_ID_SIZE)
+        .ok_or_else(|| String::from("invalid address length"))?
+        .try_into()
+        .map_err(|_| String::from("invalid address length"))
+}
+
+fn verify_checksum(dec: &[u8]) -> Result<(), String> {
+    if dec.len() < ADDRESS_CHECKSUM_SIZE {
+        return Err("invalid address length".into());
+    }
+    let data_bytes = &dec[..dec.len() - ADDRESS_CHECKSUM_SIZE];
+    let computed = keccak::keccak256_bytes(data_bytes);
+    let checksum_start = dec.len() - ADDRESS_CHECKSUM_SIZE;
+    if dec[checksum_start..] != computed[..ADDRESS_CHECKSUM_SIZE] {
+        return Err("invalid address checksum".into());
+    }
+    Ok(())
+}
+
 /// Encode spend + view public keys into a Conceal address string.
-/// pubkeys_to_string equivalent from Cn.ts.
+/// `pubkeys_to_string` equivalent from Cn.ts.
 pub fn pubkeys_to_string(spend_pub: &[u8; 32], view_pub: &[u8; 32]) -> String {
     let mut data = prefix_bytes(ADDRESS_PREFIX);
     data.extend_from_slice(spend_pub);
     data.extend_from_slice(view_pub);
+    let checksum = keccak::keccak256_bytes(&data);
+    data.extend_from_slice(&checksum[..ADDRESS_CHECKSUM_SIZE]);
+    base58::encode(&data)
+}
+
+/// Encode an integrated address embedding an 8-byte payment ID.
+pub fn encode_integrated_address(
+    spend_pub: &[u8; 32],
+    view_pub: &[u8; 32],
+    payment_id: &[u8; INTEGRATED_ID_SIZE],
+) -> String {
+    let mut data = prefix_bytes(INTEGRATED_ADDRESS_PREFIX);
+    data.extend_from_slice(spend_pub);
+    data.extend_from_slice(view_pub);
+    data.extend_from_slice(payment_id);
     let checksum = keccak::keccak256_bytes(&data);
     data.extend_from_slice(&checksum[..ADDRESS_CHECKSUM_SIZE]);
     base58::encode(&data)
@@ -47,44 +133,35 @@ pub fn create_address_from_seed(
     (spend_sec, spend_pub, view_sec, view_pub, public_addr)
 }
 
-/// Decode a Conceal address string.
+/// Decode a Conceal address string with integrated payment ID support.
 ///
-/// Returns (spend_pub_hex, view_pub_hex) or an error.
-pub fn decode_address_str(address: &str) -> Result<([u8; 32], [u8; 32]), String> {
+/// Enforces an exact decoded length so trailing bytes cannot be appended to a
+/// valid address and still pass checksum validation (address malleability).
+pub fn decode_address_full(address: &str) -> Result<DecodedAddress, String> {
     let dec = base58::decode(address)?;
-    let dec_hex = utils::bytes_to_hex(&dec);
+    let (kind, prefix_len) = match_prefix(&dec)?;
 
-    // Determine expected prefix length by trying known prefixes.
-    let exp_prefix = utils::bytes_to_hex(&prefix_bytes(ADDRESS_PREFIX));
-    let exp_prefix_int = utils::bytes_to_hex(&prefix_bytes(INTEGRATED_ADDRESS_PREFIX));
-    let exp_prefix_sub = utils::bytes_to_hex(&prefix_bytes(SUBADDRESS_PREFIX));
-
-    let prefix_len = if dec_hex.starts_with(&exp_prefix) {
-        exp_prefix.len()
-    } else if dec_hex.starts_with(&exp_prefix_int) {
-        exp_prefix_int.len()
-    } else if dec_hex.starts_with(&exp_prefix_sub) {
-        exp_prefix_sub.len()
-    } else {
-        return Err("invalid address prefix".into());
-    };
-
-    // Extract spend and view public keys (each 32 bytes = 64 hex chars).
-    let spend_hex = &dec_hex[prefix_len..prefix_len + 64];
-    let view_hex = &dec_hex[prefix_len + 64..prefix_len + 128];
-
-    let spend = utils::hex_to_bytes32(spend_hex)?;
-    let view = utils::hex_to_bytes32(view_hex)?;
-
-    // Verify checksum.
-    let data_bytes = &dec[..dec.len() - ADDRESS_CHECKSUM_SIZE];
-    let computed = keccak::keccak256_bytes(data_bytes);
-    let checksum_start = dec.len() - ADDRESS_CHECKSUM_SIZE;
-    if dec[checksum_start..] != computed[..ADDRESS_CHECKSUM_SIZE] {
-        return Err("invalid address checksum".into());
+    if dec.len() != expected_payload_len(kind, prefix_len) {
+        return Err("invalid address length".into());
     }
 
-    Ok((spend, view))
+    let body_start = prefix_len;
+    let spend = slice32(&dec, body_start)?;
+    let view = slice32(&dec, body_start + PUBKEY_SIZE)?;
+
+    let int_payment_id = if kind == AddressKind::Integrated {
+        Some(slice8(&dec, body_start + PUBKEY_SIZE + PUBKEY_SIZE)?)
+    } else {
+        None
+    };
+
+    verify_checksum(&dec)?;
+
+    Ok(DecodedAddress {
+        spend,
+        view,
+        int_payment_id,
+    })
 }
 
 #[cfg(test)]
@@ -99,40 +176,61 @@ mod tests {
         assert_eq!(bytes_to_hex(&p), "d4f501");
     }
 
+    #[test]
+    fn integrated_prefix_varint() {
+        assert_eq!(
+            bytes_to_hex(&prefix_bytes(INTEGRATED_ADDRESS_PREFIX)),
+            "d5f501"
+        );
+    }
+
     /// Address roundtrip: create then decode must return matching keys.
     #[test]
     fn create_and_decode_roundtrip() {
         let seed = [1u8; 32];
         let (_, spend_pub, _, view_pub, addr) = create_address_from_seed(&seed);
-        let (decoded_spend, decoded_view) = decode_address_str(&addr).unwrap();
-        assert_eq!(spend_pub, decoded_spend);
-        assert_eq!(view_pub, decoded_view);
+        let decoded = decode_address_full(&addr).unwrap();
+        assert_eq!(spend_pub, decoded.spend);
+        assert_eq!(view_pub, decoded.view);
+        assert_eq!(decoded.int_payment_id, None);
+    }
+
+    #[test]
+    fn integrated_encode_decode_roundtrip() {
+        let spend = [0x11u8; 32];
+        let view = [0x22u8; 32];
+        let payment_id = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xaa];
+        let addr = encode_integrated_address(&spend, &view, &payment_id);
+        let decoded = decode_address_full(&addr).unwrap();
+        assert_eq!(decoded.spend, spend);
+        assert_eq!(decoded.view, view);
+        assert_eq!(decoded.int_payment_id, Some(payment_id));
+    }
+
+    #[test]
+    fn padded_address_rejected() {
+        let seed = [1u8; 32];
+        let (_, _, _, _, addr) = create_address_from_seed(&seed);
+        let mut raw = base58::decode(&addr).unwrap();
+        raw.push(0x00);
+        let padded = base58::encode(&raw);
+        assert!(decode_address_full(&padded).is_err());
     }
 
     /// All-zero seed produces a valid address.
     #[test]
     fn zero_seed_address() {
         let (_, _, _, _, addr) = create_address_from_seed(&[0u8; 32]);
-        assert!(addr.len() > 0, "address should not be empty");
-        decode_address_str(&addr).unwrap();
+        assert!(!addr.is_empty(), "address should not be empty");
+        decode_address_full(&addr).unwrap();
     }
 
     /// Known-vector test for cross-checking against conceal-web-wallet JS output.
-    ///
-    /// Seed: 32 bytes of 0x01 ("0101...01" hex, 64 chars).
-    ///
-    /// Expected values computed by running Cn.ts `create_address` in the
-    /// web wallet with seed = "0101010101010101010101010101010101010101010101010101010101010101".
-    ///
-    /// To regenerate: open browser console on conceal-web-wallet, call
-    ///   Cn.create_address("0101...01")
-    /// and verify these values match.
     #[test]
     fn known_vector_seed_ones() {
         let seed = [0x01u8; 32];
         let (spend_sec, spend_pub, view_sec, view_pub, addr) = create_address_from_seed(&seed);
 
-        // spend.sec = sc_reduce32(seed).  0x01*32 is already < l, so unchanged.
         assert_eq!(
             bytes_to_hex(&spend_sec),
             "0101010101010101010101010101010101010101010101010101010101010101"
@@ -154,16 +252,8 @@ mod tests {
             "ccx7DPvKYficy3QUqegFJFELGa3CE61AKGJRQgyBMe6xCxcbqXfRa722ucLqFsm4hiTPfzf7JTzwxTLEp2jR4BGm1JmVe2rDkq"
         );
 
-        // Round-trip consistency.
-        let (decoded_spend, decoded_view) = decode_address_str(&addr).unwrap();
-        assert_eq!(spend_pub, decoded_spend);
-        assert_eq!(view_pub, decoded_view);
-
-        // Print values for JS cross-check (visible with `cargo test -- --nocapture`).
-        println!("spend.sec = {}", bytes_to_hex(&spend_sec));
-        println!("spend.pub = {}", bytes_to_hex(&spend_pub));
-        println!("view.sec  = {}", bytes_to_hex(&view_sec));
-        println!("view.pub  = {}", bytes_to_hex(&view_pub));
-        println!("addr      = {addr}");
+        let decoded = decode_address_full(&addr).unwrap();
+        assert_eq!(spend_pub, decoded.spend);
+        assert_eq!(view_pub, decoded.view);
     }
 }

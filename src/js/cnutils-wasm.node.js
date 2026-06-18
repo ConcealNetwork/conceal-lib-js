@@ -4,6 +4,6 @@
  * @module cnutils-wasm
  */
 
-import * as wasmCrypto from '../wasm/crypto/crypto.js';
+import * as wasmCrypto from "../wasm/crypto/crypto.js";
 
 export default wasmCrypto;

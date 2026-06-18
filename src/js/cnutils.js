@@ -8,12 +8,10 @@
  * @module cnutils
  */
 
-'use strict';
-
-import { JSBigInt } from './tiers/biginteger.js';
-import nacl from './tiers/nacl.js';
-import { keccak_256 } from './tiers/sha3.js';
-import wasmCrypto from '#cnutils-wasm';
+import wasmCrypto from "#cnutils-wasm";
+import { JSBigInt } from "./tiers/biginteger.js";
+import nacl from "./tiers/nacl.js";
+import { keccak_256 } from "./tiers/sha3.js";
 
 const wasm_hash_to_scalar = wasmCrypto.hash_to_scalar;
 const wasm_sc_add = wasmCrypto.sc_add;
@@ -37,7 +35,7 @@ export const STRUCT_SIZES = Object.freeze({
  * @returns {Uint8Array}
  */
 export function hextobin(hex) {
-  if (hex.length % 2 !== 0) throw new Error('Hex string has invalid length!');
+  if (hex.length % 2 !== 0) throw new Error("Hex string has invalid length!");
   const res = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length / 2; ++i) {
     res[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
@@ -51,7 +49,7 @@ export function hextobin(hex) {
  */
 export function bintohex(bin) {
   const out = [];
-  if (typeof bin === 'string') {
+  if (typeof bin === "string") {
     for (let i = 0; i < bin.length; ++i) {
       out.push(`0${bin.charCodeAt(i).toString(16)}`.slice(-2));
     }
@@ -60,7 +58,7 @@ export function bintohex(bin) {
       out.push(`0${bin[i].toString(16)}`.slice(-2));
     }
   }
-  return out.join('');
+  return out.join("");
 }
 
 /**
@@ -69,9 +67,9 @@ export function bintohex(bin) {
  */
 export function swapEndian(hex) {
   if (hex.length % 2 !== 0) {
-    return 'length must be a multiple of 2!';
+    return "length must be a multiple of 2!";
   }
-  let data = '';
+  let data = "";
   for (let i = 1; i <= hex.length / 2; i++) {
     data += hex.substr(0 - 2 * i, 2);
   }
@@ -83,7 +81,7 @@ export function swapEndian(hex) {
  * @returns {string}
  */
 export function swapEndianC(string) {
-  let data = '';
+  let data = "";
   for (let i = 1; i <= string.length; i++) {
     data += string.substr(0 - i, 1);
   }
@@ -95,14 +93,16 @@ export function swapEndianC(string) {
  * @returns {string}
  */
 export function d2h(integer) {
-  if (typeof integer !== 'string' && integer.toString().length > 15) {
-    throw new Error('integer should be entered as a string for precision');
+  if (typeof integer !== "string" && integer.toString().length > 15) {
+    throw new Error("integer should be entered as a string for precision");
   }
-  let padding = '';
+  let padding = "";
   for (let i = 0; i < 63; i++) {
-    padding += '0';
+    padding += "0";
   }
-  return (padding + new JSBigInt(integer).toString(16).toLowerCase()).slice(-64);
+  return (padding + new JSBigInt(integer).toString(16).toLowerCase()).slice(
+    -64,
+  );
 }
 
 /**
@@ -110,7 +110,7 @@ export function d2h(integer) {
  * @returns {string}
  */
 export function d2s(integer) {
-  if (typeof integer === 'string') {
+  if (typeof integer === "string") {
     return swapEndian(d2h(integer));
   }
   return swapEndian(d2h(integer.toString()));
@@ -134,16 +134,16 @@ export function h2d(hex) {
  */
 export function d2b(integer) {
   const integerStr = integer.toString();
-  if (typeof integer !== 'string' && integerStr.length > 15) {
-    throw new Error('integer should be entered as a string for precision');
+  if (typeof integer !== "string" && integerStr.length > 15) {
+    throw new Error("integer should be entered as a string for precision");
   }
-  let padding = '';
+  let padding = "";
   for (let i = 0; i < 63; i++) {
-    padding += '0';
+    padding += "0";
   }
   const a = new JSBigInt(integerStr);
   if (a.toString(2).length > 64) {
-    throw new Error('amount overflows uint64!');
+    throw new Error("amount overflows uint64!");
   }
   return swapEndianC((padding + a.toString(2)).slice(-64));
 }
@@ -155,7 +155,7 @@ export function d2b(integer) {
  */
 export function ge_scalarmult(pub, sec) {
   if (pub.length !== 64 || sec.length !== 64) {
-    throw new Error('Invalid input length');
+    throw new Error("Invalid input length");
   }
   return bintohex(nacl.ll.ge_scalarmult(hextobin(pub), hextobin(sec)));
 }
@@ -167,7 +167,7 @@ export function ge_scalarmult(pub, sec) {
  */
 export function ge_add(p1, p2) {
   if (p1.length !== 64 || p2.length !== 64) {
-    throw new Error('Invalid input length!');
+    throw new Error("Invalid input length!");
   }
   return bintohex(nacl.ll.ge_add(hextobin(p1), hextobin(p2)));
 }
@@ -178,7 +178,7 @@ export function ge_add(p1, p2) {
  */
 export function ge_neg(point) {
   if (point.length !== 64) {
-    throw new Error('expected 64 char hex string');
+    throw new Error("expected 64 char hex string");
   }
   return (
     point.slice(0, 62) +
@@ -202,7 +202,7 @@ export function ge_sub(point1, point2) {
  */
 export function sec_key_to_pub(sec) {
   if (sec.length !== 64) {
-    throw new Error('Invalid sec length');
+    throw new Error("Invalid sec length");
   }
   return bintohex(nacl.ll.ge_scalarmult_base(hextobin(sec)));
 }
@@ -230,9 +230,9 @@ export function ge_scalarmult_base(sec) {
  * @returns {string}
  */
 export function derivation_to_scalar(derivation, output_index) {
-  let buf = '';
+  let buf = "";
   if (derivation.length !== STRUCT_SIZES.EC_POINT * 2) {
-    throw new Error('Invalid derivation length!');
+    throw new Error("Invalid derivation length!");
   }
   buf += derivation;
   const enc = encode_varint(output_index);
@@ -249,7 +249,7 @@ export function derivation_to_scalar(derivation, output_index) {
  */
 export function encode_varint(i) {
   let j = new JSBigInt(i);
-  let out = '';
+  let out = "";
   while (j.compare(0x80) >= 0) {
     out += `0${((j.lowVal() & 0x7f) | 0x80).toString(16)}`.slice(-2);
     j = j.divide(new JSBigInt(2).pow(7));
@@ -264,11 +264,11 @@ export function encode_varint(i) {
  */
 export function encode_varint_term(i) {
   let value = new JSBigInt(i);
-  let out = '';
+  let out = "";
   do {
     const byteValue = value.lowVal() & 0xff;
     const byte = value.compare(0x7f) > 0 ? byteValue | 0x80 : byteValue;
-    out += byte.toString(16).padStart(2, '0');
+    out += byte.toString(16).padStart(2, "0");
     value = value.divide(0x80);
   } while (value.compare(0) > 0);
   return out;
@@ -282,7 +282,7 @@ export function encode_varint_term(i) {
  */
 export function cn_fast_hash(input) {
   if (input.length % 2 !== 0 || !valid_hex(input)) {
-    throw new Error('Input invalid');
+    throw new Error("Input invalid");
   }
   return keccak_256(hextobin(input));
 }
@@ -300,7 +300,7 @@ export function hex_xor(hex1, hex2) {
     hex1.length % 2 !== 0 ||
     hex2.length % 2 !== 0
   ) {
-    throw new Error('Hex string(s) is/are invalid!');
+    throw new Error("Hex string(s) is/are invalid!");
   }
   const bin1 = hextobin(hex1);
   const bin2 = hextobin(hex2);
@@ -342,10 +342,14 @@ export function padLeft(str, len, char) {
  */
 export function ge_double_scalarmult_base_vartime(c, P, r) {
   if (c.length !== 64 || P.length !== 64 || r.length !== 64) {
-    throw new Error('Invalid input length!');
+    throw new Error("Invalid input length!");
   }
   return bintohex(
-    nacl.ll.ge_double_scalarmult_base_vartime(hextobin(c), hextobin(P), hextobin(r)),
+    nacl.ll.ge_double_scalarmult_base_vartime(
+      hextobin(c),
+      hextobin(P),
+      hextobin(r),
+    ),
   );
 }
 
@@ -359,11 +363,18 @@ export function ge_double_scalarmult_base_vartime(c, P, r) {
  * @returns {string} 64-char hex point.
  */
 export function ge_double_scalarmult_postcomp_vartime(r, P, c, I) {
-  if (c.length !== 64 || P.length !== 64 || r.length !== 64 || I.length !== 64) {
-    throw new Error('Invalid input length!');
+  if (
+    c.length !== 64 ||
+    P.length !== 64 ||
+    r.length !== 64 ||
+    I.length !== 64
+  ) {
+    throw new Error("Invalid input length!");
   }
-  if (typeof wasmCrypto.hash_to_ec32 !== 'function') {
-    throw new Error('hash_to_ec32 is not in crypto WASM; run npm run build:crypto');
+  if (typeof wasmCrypto.hash_to_ec32 !== "function") {
+    throw new Error(
+      "hash_to_ec32 is not in crypto WASM; run npm run build:crypto",
+    );
   }
   const Pb = wasmCrypto.hash_to_ec32(P);
   return bintohex(
@@ -384,10 +395,10 @@ export function decompose_amount_into_digits(amount) {
   amount = amount.toString();
   const ret = [];
   while (amount.length > 0) {
-    if (amount[0] !== '0') {
+    if (amount[0] !== "0") {
       let digit = amount[0];
       while (digit.length < amount.length) {
-        digit += '0';
+        digit += "0";
       }
       ret.push(new JSBigInt(digit));
     }

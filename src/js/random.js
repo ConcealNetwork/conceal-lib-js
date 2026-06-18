@@ -7,10 +7,9 @@
  * @module random
  */
 
-'use strict';
+import wasmCrypto from "#cnutils-wasm";
+import { mn_random } from "./mnemonic.js";
 
-import { mn_random } from './mnemonic.js';
-import wasmCrypto from '#cnutils-wasm';
 const { sc_reduce32 } = wasmCrypto;
 
 /**

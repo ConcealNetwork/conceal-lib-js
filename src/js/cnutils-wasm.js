@@ -4,4 +4,4 @@
  * @module cnutils-wasm
  */
 
-export { default } from './cnutils-wasm.browser.js';
+export { default } from "./cnutils-wasm.browser.js";

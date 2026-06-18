@@ -23,11 +23,11 @@ export async function runMnemonicTests(log) {
       /^[0-9a-f]+$/.test(entropy);
     log(
       "mn_random(256) → 64-char hex: " +
-        (ok ? "PASS" : "FAIL — got: " + entropy),
+        (ok ? "PASS" : `FAIL — got: ${entropy}`),
       ok,
     );
   } catch (e) {
-    log("mn_random(256) failed: " + e, false);
+    log(`mn_random(256) failed: ${e}`, false);
     return;
   }
 
@@ -36,7 +36,7 @@ export async function runMnemonicTests(log) {
     mn_random(100);
     log("mn_random(100) should have thrown", false);
   } catch (e) {
-    log("mn_random(100) correctly rejected: " + e, true);
+    log(`mn_random(100) correctly rejected: ${e}`, true);
   }
 
   // ── Test 3: mn_encode on a known key (default / explicit "english") ──────
@@ -57,7 +57,7 @@ export async function runMnemonicTests(log) {
       ok,
     );
   } catch (e) {
-    log("mn_encode(english) failed: " + e, false);
+    log(`mn_encode(english) failed: ${e}`, false);
     return;
   }
 
@@ -65,9 +65,9 @@ export async function runMnemonicTests(log) {
   try {
     const recovered = mn_decode(phrase, "english");
     const ok = recovered === hexKey;
-    log("mn_decode(english) round-trip: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`mn_decode(english) round-trip: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("mn_decode(english) failed: " + e, false);
+    log(`mn_decode(english) failed: ${e}`, false);
   }
 
   // ── Test 5: default language (empty string) behaves as english ───────────
@@ -81,7 +81,7 @@ export async function runMnemonicTests(log) {
       ok,
     );
   } catch (e) {
-    log("default language fallback failed: " + e, false);
+    log(`default language fallback failed: ${e}`, false);
   }
 
   // ── Test 6: bad word count rejected ──────────────────────────────────────
@@ -89,7 +89,7 @@ export async function runMnemonicTests(log) {
     mn_decode("abbey abbey", "english");
     log("bad word count should have thrown", false);
   } catch (e) {
-    log("bad word count correctly rejected: " + e, true);
+    log(`bad word count correctly rejected: ${e}`, true);
   }
 
   // ── Test 7: bad checksum rejected ────────────────────────────────────────
@@ -99,7 +99,7 @@ export async function runMnemonicTests(log) {
     mn_decode(words.join(" "), "english");
     log("bad checksum should have thrown", false);
   } catch (e) {
-    log("bad checksum correctly rejected: " + e, true);
+    log(`bad checksum correctly rejected: ${e}`, true);
   }
 
   // ── Test 8: all-zero key round-trip ──────────────────────────────────────
@@ -108,9 +108,9 @@ export async function runMnemonicTests(log) {
     const zeroPhrase = mn_encode(zeroHex, "english");
     const zeroRecovered = mn_decode(zeroPhrase, "english");
     const ok = zeroRecovered === zeroHex;
-    log("all-zero key round-trip: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`all-zero key round-trip: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("all-zero key test failed: " + e, false);
+    log(`all-zero key test failed: ${e}`, false);
   }
 
   // ── Test 9: unknown language rejected ────────────────────────────────────
@@ -118,7 +118,7 @@ export async function runMnemonicTests(log) {
     mn_encode(hexKey, "klingon");
     log("unknown language should have thrown", false);
   } catch (e) {
-    log("unknown language correctly rejected: " + e, true);
+    log(`unknown language correctly rejected: ${e}`, true);
   }
 
   // ── Test 10: all language round-trips ────────────────────────────────────
@@ -129,11 +129,11 @@ export async function runMnemonicTests(log) {
       const wordCount = p.trim().split(/\s+/).length;
       const ok = recovered === hexKey && wordCount === expectedWords;
       log(
-        `${name} round-trip (${wordCount} words): ` + (ok ? "PASS" : "FAIL"),
+        `${name} round-trip (${wordCount} words): ${ok ? "PASS" : "FAIL"}`,
         ok,
       );
     } catch (e) {
-      log(`${name} round-trip failed: ` + e, false);
+      log(`${name} round-trip failed: ${e}`, false);
     }
   }
 }

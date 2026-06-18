@@ -1,3 +1,4 @@
+import { renderBenchmarkResults, runBenchmarks } from "./benchmark.js";
 import { runAddressTests } from "./test-address.js";
 import { runCnTests } from "./test-cn.js";
 import { runCnutilsTests } from "./test-cnutils.js";
@@ -37,10 +38,25 @@ async function runAll() {
     try {
       await suite.run(log);
     } catch (e) {
-      log("suite crashed: " + e, false);
+      log(`suite crashed: ${e}`, false);
     }
 
     container.appendChild(section);
+  }
+
+  const benchContainer = document.getElementById("benchmark-results");
+  if (benchContainer) {
+    try {
+      benchContainer.innerHTML = "<em>Running benchmarks…</em>";
+      const results = await runBenchmarks();
+      renderBenchmarkResults(benchContainer, results);
+    } catch (e) {
+      benchContainer.innerHTML = "";
+      const p = document.createElement("p");
+      p.className = "fail";
+      p.textContent = `benchmark crashed: ${e}`;
+      benchContainer.appendChild(p);
+    }
   }
 }
 

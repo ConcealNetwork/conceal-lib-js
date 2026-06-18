@@ -14,7 +14,7 @@
 //! | `keys` | `generate_keys`, `generate_key_derivation`, `derive_public_key`, `derive_secret_key`, `hash_to_scalar`, `generate_key_image` |
 //! | `scan` | `scan_receive_outputs`, `scan_receive_outputs_batch` |
 //! | `signature` | `generate_signature`, `generate_ring_signature`, `check_tx_proof` |
-//! | `address` | `create_address`, `decode_address` |
+//! | `address` | `create_address`, `encode_address`, `encode_integrated_address`, `decode_address` |
 //! | `base58` | CryptoNote Base58 encode/decode |
 //! | `utils` | hex conversion helpers |
 
@@ -55,7 +55,7 @@ struct DecodedAddressJs {
     spend: String,
     view: String,
     #[serde(rename = "intPaymentId")]
-    int_payment_id: Option<()>,
+    int_payment_id: Option<String>,
 }
 
 fn to_js_value<T: serde::Serialize>(value: &T) -> Result<JsValue, JsValue> {
@@ -493,15 +493,50 @@ pub fn create_address(seed_hex: &str) -> Result<JsValue, JsValue> {
     })
 }
 
+/// encode_address: build a standard CCX address from spend + view public keys.
+/// Matches `address.encode_address` / `pubkeys_to_string` in conceal-web-wallet.
+#[wasm_bindgen]
+pub fn encode_address(spend_pub_hex: &str, view_pub_hex: &str) -> Result<String, JsValue> {
+    let spend_pub = hex_to_bytes32(spend_pub_hex).map_err(|e| JsValue::from_str(&e))?;
+    let view_pub = hex_to_bytes32(view_pub_hex).map_err(|e| JsValue::from_str(&e))?;
+    Ok(address::pubkeys_to_string(&spend_pub, &view_pub))
+}
+
+/// encode_integrated_address: build a CCX integrated address with an 8-byte payment ID.
+#[wasm_bindgen]
+pub fn encode_integrated_address(
+    spend_pub_hex: &str,
+    view_pub_hex: &str,
+    payment_id_hex: &str,
+) -> Result<String, JsValue> {
+    let spend_pub = hex_to_bytes32(spend_pub_hex).map_err(|e| JsValue::from_str(&e))?;
+    let view_pub = hex_to_bytes32(view_pub_hex).map_err(|e| JsValue::from_str(&e))?;
+    let payment_id = hex_to_bytes(payment_id_hex).map_err(|e| JsValue::from_str(&e))?;
+    if payment_id.len() != address::INTEGRATED_ID_SIZE {
+        return Err(JsValue::from_str(&format!(
+            "paymentId must be a {}-char hex string",
+            address::INTEGRATED_ID_SIZE * 2
+        )));
+    }
+    let payment_id: [u8; address::INTEGRATED_ID_SIZE] = payment_id
+        .try_into()
+        .map_err(|_| JsValue::from_str("paymentId must be exactly 8 bytes"))?;
+    Ok(address::encode_integrated_address(
+        &spend_pub,
+        &view_pub,
+        &payment_id,
+    ))
+}
+
 /// decode_address: validate and extract spend/view public keys from an address string.
-/// Returns `{spend: hex, view: hex, intPaymentId: null}`.
-/// Matches `Cn.decode_address(address)`.
+/// Returns `{ spend: hex, view: hex, intPaymentId: hex | null }`.
+/// Surfaces the embedded payment ID for integrated addresses.
 #[wasm_bindgen]
 pub fn decode_address(address: &str) -> Result<JsValue, JsValue> {
-    let (spend, view) = address::decode_address_str(address).map_err(|e| JsValue::from_str(&e))?;
+    let decoded = address::decode_address_full(address).map_err(|e| JsValue::from_str(&e))?;
     to_js_value(&DecodedAddressJs {
-        spend: bytes_to_hex(&spend),
-        view: bytes_to_hex(&view),
-        int_payment_id: None,
+        spend: bytes_to_hex(&decoded.spend),
+        view: bytes_to_hex(&decoded.view),
+        int_payment_id: decoded.int_payment_id.map(|id| bytes_to_hex(&id)),
     })
 }

@@ -21,19 +21,19 @@
  * ```
  */
 
-export * as mnemonic from "./js/mnemonic.js";
-export * as cnutils from "./js/cnutils.js";
-export * as random from "./js/random.js";
-export * as cn from "./js/cn.js";
-export * as transactions from "./js/transactions.js";
 export * as address from "./js/address.js";
+export * as cn from "./js/cn.js";
+export * as cnutils from "./js/cnutils.js";
+export * as mnemonic from "./js/mnemonic.js";
+export * as random from "./js/random.js";
+export * as transactions from "./js/transactions.js";
 
 import initCrypto from "./wasm-browser/crypto/crypto.js";
 import initCypher from "./wasm-browser/cypher/cypher.js";
 
+export { sha3_384 } from "./js/tiers/sha3.js";
 export * as crypto from "./wasm-browser/crypto/crypto.js";
 export * as cypher from "./wasm-browser/cypher/cypher.js";
-export { sha3_384 } from "./js/tiers/sha3.js";
 
 let initPromise = null;
 

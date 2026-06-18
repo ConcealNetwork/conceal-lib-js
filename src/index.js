@@ -20,9 +20,9 @@
  *
  * - **`cn`** — `random_keypair`, `underive_public_key` (JS + WASM).
  * - **`transactions`** — `ownsTx`, receive/spend scan helpers (JS + WASM).
- * - **`address`** — address encoding/decoding for view-only / integrated addresses
- *   (`encode_address`, `encode_integrated_address`, `decode_address` — which
- *   surfaces the integrated payment ID) plus CryptoNote base58 (JS tier, no WASM).
+ * - **`address`** — zero-init address encode/decode (`encode_address`, `encode_integrated_address`,
+ *   `decode_address`) plus CryptoNote base58. Mirrors Rust `address.rs`; use when WASM is not loaded.
+ *   Same operations are also on **`crypto`** when WASM is initialized.
  * - **`random`** — `rand32`, `rand16`, `rand8` (browser entropy via `mnemonic`).
  *
  * - **`sha3_384`** — SHA3-384 (NIST padding) as lowercase hex (plain JS, `tiers/sha3.js`).
@@ -44,12 +44,12 @@
  * ```
  */
 
+export * as address from "./js/address.js";
+export * as cn from "./js/cn.js";
+export * as cnutils from "./js/cnutils.js";
 export * as mnemonic from "./js/mnemonic.js";
-export * as cnutils  from "./js/cnutils.js";
-export * as random   from "./js/random.js";
-export * as cn           from "./js/cn.js";
-export * as transactions from "./js/transactions.js";
-export * as address      from "./js/address.js";
-export * as crypto       from "./wasm/crypto/crypto.js";
-export * as cypher   from "./wasm/cypher/cypher.js";
+export * as random from "./js/random.js";
 export { sha3_384 } from "./js/tiers/sha3.js";
+export * as transactions from "./js/transactions.js";
+export * as crypto from "./wasm/crypto/crypto.js";
+export * as cypher from "./wasm/cypher/cypher.js";

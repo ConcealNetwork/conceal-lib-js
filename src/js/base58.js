@@ -10,9 +10,8 @@
  * @module base58
  */
 
-'use strict';
-
-const alphabet_str = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const alphabet_str =
+  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const alphabet = [];
 for (let i = 0; i < alphabet_str.length; i++) {
   alphabet.push(alphabet_str.charCodeAt(i));
@@ -34,10 +33,10 @@ const UINT64_MAX = 2n ** 64n - 1n;
  * @returns {Uint8Array}
  */
 function hextobin(hex) {
-  if (typeof hex !== 'string' || !/^[0-9a-fA-F]*$/.test(hex)) {
-    throw new Error('Invalid hex string');
+  if (typeof hex !== "string" || !/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hex string");
   }
-  if (hex.length % 2 !== 0) throw new Error('Hex string has invalid length!');
+  if (hex.length % 2 !== 0) throw new Error("Hex string has invalid length!");
   const res = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length / 2; ++i) {
     res[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
@@ -54,7 +53,7 @@ function bintohex(bin) {
   for (let i = 0; i < bin.length; ++i) {
     out.push(`0${bin[i].toString(16)}`.slice(-2));
   }
-  return out.join('');
+  return out.join("");
 }
 
 /**
@@ -78,7 +77,7 @@ function bintostr(bin) {
   for (let i = 0; i < bin.length; i++) {
     out.push(String.fromCharCode(bin[i]));
   }
-  return out.join('');
+  return out.join("");
 }
 
 /**
@@ -89,7 +88,7 @@ function bintostr(bin) {
  */
 function uint8_be_to_64(data) {
   if (data.length < 1 || data.length > 8) {
-    throw new Error('Invalid input length');
+    throw new Error("Invalid input length");
   }
   let res = 0n;
   for (let i = 0; i < data.length; i++) {
@@ -108,7 +107,7 @@ function uint8_be_to_64(data) {
 function uint64_to_8be(num, size) {
   const res = new Uint8Array(size);
   if (size < 1 || size > 8) {
-    throw new Error('Invalid input length');
+    throw new Error("Invalid input length");
   }
   for (let i = size - 1; i >= 0; i--) {
     res[i] = Number(num % 256n);
@@ -150,12 +149,13 @@ function encode_block(data, buf, index) {
 export function encode(hex) {
   const data = hextobin(hex);
   if (data.length === 0) {
-    return '';
+    return "";
   }
   const full_block_count = Math.floor(data.length / full_block_size);
   const last_block_size = data.length % full_block_size;
   const res_size =
-    full_block_count * full_encoded_block_size + encoded_block_sizes[last_block_size];
+    full_block_count * full_encoded_block_size +
+    encoded_block_sizes[last_block_size];
 
   const res = new Uint8Array(res_size);
   for (let i = 0; i < res_size; ++i) {
@@ -196,25 +196,25 @@ function decode_block(data, buf, index) {
 
   const res_size = encoded_block_sizes.indexOf(data.length);
   if (res_size <= 0) {
-    throw new Error('Invalid block size');
+    throw new Error("Invalid block size");
   }
   let res_num = 0n;
   let order = 1n;
   for (let i = data.length - 1; i >= 0; i--) {
     const digit = alphabet.indexOf(data[i]);
     if (digit < 0) {
-      throw new Error('Invalid symbol');
+      throw new Error("Invalid symbol");
     }
     const product = order * BigInt(digit) + res_num;
     // if product > UINT64_MAX
     if (product > UINT64_MAX) {
-      throw new Error('Overflow');
+      throw new Error("Overflow");
     }
     res_num = product;
     order = order * alphabet_size;
   }
   if (res_size < full_block_size && 2n ** BigInt(8 * res_size) <= res_num) {
-    throw new Error('Overflow 2');
+    throw new Error("Overflow 2");
   }
   buf.set(uint64_to_8be(res_num, res_size), index);
   return buf;
@@ -227,20 +227,23 @@ function decode_block(data, buf, index) {
  * @returns {string} Even-length hex string.
  */
 export function decode(enc) {
-  if (typeof enc !== 'string') {
-    throw new Error('Base58 input must be a string');
+  if (typeof enc !== "string") {
+    throw new Error("Base58 input must be a string");
   }
   const data_bin = strtobin(enc);
   if (data_bin.length === 0) {
-    return '';
+    return "";
   }
-  const full_block_count = Math.floor(data_bin.length / full_encoded_block_size);
+  const full_block_count = Math.floor(
+    data_bin.length / full_encoded_block_size,
+  );
   const last_block_size = data_bin.length % full_encoded_block_size;
   const last_block_decoded_size = encoded_block_sizes.indexOf(last_block_size);
   if (last_block_decoded_size < 0) {
-    throw new Error('Invalid encoded length');
+    throw new Error("Invalid encoded length");
   }
-  const data_size = full_block_count * full_block_size + last_block_decoded_size;
+  const data_size =
+    full_block_count * full_block_size + last_block_decoded_size;
   const data = new Uint8Array(data_size);
   for (let i = 0; i < full_block_count; i++) {
     decode_block(

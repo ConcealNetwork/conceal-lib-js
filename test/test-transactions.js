@@ -44,7 +44,8 @@ function makeHexReader(hex) {
       let result = 0;
       let shift = 0;
       for (;;) {
-        if (pos * 2 >= hex.length) throw new Error("readVarint: ran past end of buffer");
+        if (pos * 2 >= hex.length)
+          throw new Error("readVarint: ran past end of buffer");
         const byte = Number.parseInt(hex.slice(pos * 2, pos * 2 + 2), 16);
         pos += 1;
         result += (byte & 0x7f) * 2 ** shift;
@@ -55,7 +56,8 @@ function makeHexReader(hex) {
     },
     /** Read `n` raw bytes as hex. @param {number} n @returns {string} */
     readHex(n) {
-      if ((pos + n) * 2 > hex.length) throw new Error(`readHex: need ${n} bytes past end of buffer`);
+      if ((pos + n) * 2 > hex.length)
+        throw new Error(`readHex: need ${n} bytes past end of buffer`);
       const out = hex.slice(pos * 2, pos * 2 + n * 2);
       pos += n;
       return out;
@@ -93,9 +95,9 @@ export async function runTransactionsTests(log) {
   try {
     const extracted = extractTxPublicKey(extraHex);
     const ok = extracted === txKeys.pub;
-    log("extractTxPublicKey: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`extractTxPublicKey: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("extractTxPublicKey failed: " + e, false);
+    log(`extractTxPublicKey failed: ${e}`, false);
   }
 
   // ── scanReceiveOutputs type 02 ───────────────────────────────────────────
@@ -103,9 +105,9 @@ export async function runTransactionsTests(log) {
     const ok = scanReceiveOutputs(txKeys.pub, walletKeys.sec, walletKeys.pub, [
       { type: "02", key: derivedKey0 },
     ]);
-    log("scanReceiveOutputs type 02 match: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`scanReceiveOutputs type 02 match: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("scanReceiveOutputs type 02 failed: " + e, false);
+    log(`scanReceiveOutputs type 02 failed: ${e}`, false);
   }
 
   // ── scanReceiveOutputs type 03 (vout index, not keyIndex) ────────────────
@@ -122,7 +124,7 @@ export async function runTransactionsTests(log) {
       checks.indices[1] === 1 &&
       checks.indices[2] === 1;
     log(
-      "buildReceiveOutputChecks type 03 indices: " + (ok ? "PASS" : "FAIL"),
+      `buildReceiveOutputChecks type 03 indices: ${ok ? "PASS" : "FAIL"}`,
       ok,
     );
     const match = scanReceiveOutputs(
@@ -134,12 +136,9 @@ export async function runTransactionsTests(log) {
         { type: "03", keys: [derivedAtVout] },
       ],
     );
-    log(
-      "scanReceiveOutputs type 03 match: " + (match ? "PASS" : "FAIL"),
-      match,
-    );
+    log(`scanReceiveOutputs type 03 match: ${match ? "PASS" : "FAIL"}`, match);
   } catch (e) {
-    log("type 03 scan failed: " + e, false);
+    log(`type 03 scan failed: ${e}`, false);
   }
 
   // ── ownsTx receive path ──────────────────────────────────────────────────
@@ -154,9 +153,9 @@ export async function runTransactionsTests(log) {
         spendPublicHex: walletKeys.pub,
       },
     );
-    log("ownsTx receive match: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`ownsTx receive match: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("ownsTx receive failed: " + e, false);
+    log(`ownsTx receive failed: ${e}`, false);
   }
 
   // ── ownsTx negative (wrong spend pub) ────────────────────────────────────
@@ -174,9 +173,9 @@ export async function runTransactionsTests(log) {
         spendPublicHex: other.pub,
       },
     );
-    log("ownsTx wrong spend pub: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`ownsTx wrong spend pub: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("ownsTx negative failed: " + e, false);
+    log(`ownsTx negative failed: ${e}`, false);
   }
 
   // ── scanSpendInputs key image ────────────────────────────────────────────
@@ -187,9 +186,9 @@ export async function runTransactionsTests(log) {
       viewSecretHex: walletKeys.sec,
       ownedKeyImages: ["abc123", "def456"],
     });
-    log("scanSpendInputs key image: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`scanSpendInputs key image: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("scanSpendInputs key image failed: " + e, false);
+    log(`scanSpendInputs key image failed: ${e}`, false);
   }
 
   // ── scanSpendInputs global indexes (view-only) ─────────────────────────────
@@ -199,9 +198,9 @@ export async function runTransactionsTests(log) {
       spendPublicHex: walletKeys.pub,
       knownGlobalOutputIndexes: [5, 10],
     });
-    log("scanSpendInputs global index: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`scanSpendInputs global index: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("scanSpendInputs global index failed: " + e, false);
+    log(`scanSpendInputs global index failed: ${e}`, false);
   }
 
   // ── ownsTxBatch ──────────────────────────────────────────────────────────
@@ -226,15 +225,12 @@ export async function runTransactionsTests(log) {
       batch.length === 2 &&
       batch[0] === true &&
       batch[1] === false;
-    log("ownsTxBatch: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`ownsTxBatch: ${ok ? "PASS" : "FAIL"}`, ok);
 
     const parity = txs.every((tx, i) => ownsTx(tx, ctx) === batch[i]);
-    log(
-      "ownsTxBatch parity with ownsTx: " + (parity ? "PASS" : "FAIL"),
-      parity,
-    );
+    log(`ownsTxBatch parity with ownsTx: ${parity ? "PASS" : "FAIL"}`, parity);
   } catch (e) {
-    log("ownsTxBatch failed: " + e, false);
+    log(`ownsTxBatch failed: ${e}`, false);
   }
 
   // ── serializeTransaction: round-trip walk of header-only framing ──────────
@@ -313,11 +309,11 @@ export async function runTransactionsTests(log) {
       readExtra === repTx.extra &&
       r.bytesLeft() === 0; // header ends exactly here — no trailing signatures
     log(
-      "serializeTransaction header round-trip walk: " + (ok ? "PASS" : "FAIL"),
+      `serializeTransaction header round-trip walk: ${ok ? "PASS" : "FAIL"}`,
       ok,
     );
   } catch (e) {
-    log("serializeTransaction round-trip failed: " + e, false);
+    log(`serializeTransaction round-trip failed: ${e}`, false);
   }
 
   // ── getTransactionPrefixHash === cn_fast_hash(headerOnly bytes) ────────────
@@ -326,9 +322,13 @@ export async function runTransactionsTests(log) {
     const expected = cn_fast_hash(headerHex);
     const actual = getTransactionPrefixHash(repTx);
     const ok = actual === expected && /^[0-9a-f]{64}$/.test(actual);
-    log("getTransactionPrefixHash matches cn_fast_hash: " + (ok ? "PASS" : "FAIL"), ok);
+    log(
+      "getTransactionPrefixHash matches cn_fast_hash: " +
+        (ok ? "PASS" : "FAIL"),
+      ok,
+    );
   } catch (e) {
-    log("getTransactionPrefixHash failed: " + e, false);
+    log(`getTransactionPrefixHash failed: ${e}`, false);
   }
 
   // ── full serialization appends signatures after the prefix ─────────────────
@@ -340,18 +340,21 @@ export async function runTransactionsTests(log) {
       fullHex.startsWith(headerHex) &&
       fullHex.endsWith(sigHex) &&
       fullHex.length === headerHex.length + sigHex.length;
-    log("serializeTransaction full appends signatures: " + (ok ? "PASS" : "FAIL"), ok);
+    log(
+      `serializeTransaction full appends signatures: ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
 
     // serializeTransactionWithHash mirrors raw + cn_fast_hash(raw)
     const withHash = serializeTransactionWithHash(repTx);
     const hashOk =
       withHash.raw === fullHex && withHash.hash === cn_fast_hash(fullHex);
     log(
-      "serializeTransactionWithHash raw+hash: " + (hashOk ? "PASS" : "FAIL"),
+      `serializeTransactionWithHash raw+hash: ${hashOk ? "PASS" : "FAIL"}`,
       hashOk,
     );
   } catch (e) {
-    log("serializeTransaction signatures failed: " + e, false);
+    log(`serializeTransaction signatures failed: ${e}`, false);
   }
 
   // ── valid_hex guard throws on bad extra ────────────────────────────────────
@@ -363,9 +366,13 @@ export async function runTransactionsTests(log) {
     } catch {
       threw = true;
     }
-    log("serializeTransaction rejects bad extra hex: " + (threw ? "PASS" : "FAIL"), threw);
+    log(
+      "serializeTransaction rejects bad extra hex: " +
+        (threw ? "PASS" : "FAIL"),
+      threw,
+    );
   } catch (e) {
-    log("serializeTransaction bad-extra guard failed: " + e, false);
+    log(`serializeTransaction bad-extra guard failed: ${e}`, false);
   }
 
   // ── agy review: even-length extra + deposit commits to exactly 1 signature ──
@@ -384,16 +391,34 @@ export async function runTransactionsTests(log) {
     const depMismatch = {
       version: 1,
       unlock_time: 0,
-      vin: [{ type: "input_to_deposit_key", amount: 5, outputIndex: 1, term: 21900 }],
-      vout: [{ amount: 5, target: { type: "txout_to_deposit_key", data: { keys: [depKey], term: 21900 } } }],
+      vin: [
+        {
+          type: "input_to_deposit_key",
+          amount: 5,
+          outputIndex: 1,
+          term: 21900,
+        },
+      ],
+      vout: [
+        {
+          amount: 5,
+          target: {
+            type: "txout_to_deposit_key",
+            data: { keys: [depKey], term: 21900 },
+          },
+        },
+      ],
       extra: "00",
       signatures: [["cc".repeat(64), "dd".repeat(64)]], // 2 sigs — prefix commits to 1
     };
     const depThrew = threw(depMismatch);
     const ok = oddThrew && undefThrew && depThrew;
-    log(`serializeTransaction guards (even-extra + deposit 1-sig): ${ok ? "PASS" : "FAIL"}`, ok);
+    log(
+      `serializeTransaction guards (even-extra + deposit 1-sig): ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
   } catch (e) {
-    log("serializeTransaction guard tests failed: " + e, false);
+    log(`serializeTransaction guard tests failed: ${e}`, false);
   }
 
   // ── deposit path (txout_to_deposit_key / input_to_deposit_key) ─────────────
@@ -461,14 +486,22 @@ export async function runTransactionsTests(log) {
       readDepositKey === depositKey &&
       reqSigCount === 1 &&
       voutTerm === 21900;
-    log("serializeTransaction deposit header walk: " + (headerOk ? "PASS" : "FAIL"), headerOk);
+    log(
+      "serializeTransaction deposit header walk: " +
+        (headerOk ? "PASS" : "FAIL"),
+      headerOk,
+    );
 
     const fullHex = serializeTransaction(depositTx, false);
     const fullOk =
       fullHex.startsWith(headerHex) &&
       fullHex.endsWith(depositTx.signatures[0].join(""));
-    log("serializeTransaction deposit full appends sig: " + (fullOk ? "PASS" : "FAIL"), fullOk);
+    log(
+      "serializeTransaction deposit full appends sig: " +
+        (fullOk ? "PASS" : "FAIL"),
+      fullOk,
+    );
   } catch (e) {
-    log("serializeTransaction deposit path failed: " + e, false);
+    log(`serializeTransaction deposit path failed: ${e}`, false);
   }
 }

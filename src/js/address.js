@@ -1,19 +1,20 @@
 /**
- * CCX address encoding for view-only and integrated addresses (JS tier, no WASM).
+ * CCX address encoding for view-only and integrated addresses.
  *
- * Mirrors `pubkeys_to_string` in `conceal-web-wallet`: a varint network prefix,
- * the spend + view public keys, an optional integrated payment ID, and a
- * Keccak-256 checksum, all base58-encoded. Lets callers that already hold public
- * keys (view-only wallets) or a payment ID build an address without a seed and
- * without the WASM `crypto` module.
+ * **Hybrid tier:** this module is the zero-init JavaScript path — no WASM load,
+ * no `await init()`. Algorithms mirror the canonical Rust implementation in
+ * `rust/crypto/src/address.rs` (same varint prefix, Keccak checksum, base58).
+ *
+ * When the WASM `crypto` module is already loaded, `crypto.encode_address`,
+ * `crypto.encode_integrated_address`, and `crypto.decode_address` expose the
+ * same behavior via Rust. Use this namespace for view-only wallets that only
+ * hold public keys; use `crypto.create_address` for seed-based key generation.
  *
  * @module address
  */
 
-'use strict';
-
-import * as base58 from './base58.js';
-import { cn_fast_hash, encode_varint, valid_hex } from './cnutils.js';
+import * as base58 from "./base58.js";
+import { cn_fast_hash, encode_varint, valid_hex } from "./cnutils.js";
 
 /** CCX mainnet public address prefix. */
 export const ADDRESS_PREFIX = 0x7ad4;
@@ -36,7 +37,7 @@ const INTEGRATED_ID_HEX_LENGTH = INTEGRATED_ID_SIZE * 2;
  * @returns {void}
  */
 function assertHex(hex, length, label) {
-  if (typeof hex !== 'string' || hex.length !== length || !valid_hex(hex)) {
+  if (typeof hex !== "string" || hex.length !== length || !valid_hex(hex)) {
     throw new Error(`${label} must be a ${length}-char hex string`);
   }
 }
@@ -49,8 +50,8 @@ function assertHex(hex, length, label) {
  * @returns {string} Base58 CCX address.
  */
 export function encode_address(spendPub, viewPub) {
-  assertHex(spendPub, PUBLIC_KEY_HEX_LENGTH, 'spendPub');
-  assertHex(viewPub, PUBLIC_KEY_HEX_LENGTH, 'viewPub');
+  assertHex(spendPub, PUBLIC_KEY_HEX_LENGTH, "spendPub");
+  assertHex(viewPub, PUBLIC_KEY_HEX_LENGTH, "viewPub");
   const prefix = encode_varint(ADDRESS_PREFIX);
   const data = prefix + spendPub.toLowerCase() + viewPub.toLowerCase();
   const checksum = cn_fast_hash(data).slice(0, ADDRESS_CHECKSUM_SIZE * 2);
@@ -66,11 +67,15 @@ export function encode_address(spendPub, viewPub) {
  * @returns {string} Base58 CCX integrated address.
  */
 export function encode_integrated_address(spendPub, viewPub, paymentId) {
-  assertHex(spendPub, PUBLIC_KEY_HEX_LENGTH, 'spendPub');
-  assertHex(viewPub, PUBLIC_KEY_HEX_LENGTH, 'viewPub');
-  assertHex(paymentId, INTEGRATED_ID_HEX_LENGTH, 'paymentId');
+  assertHex(spendPub, PUBLIC_KEY_HEX_LENGTH, "spendPub");
+  assertHex(viewPub, PUBLIC_KEY_HEX_LENGTH, "viewPub");
+  assertHex(paymentId, INTEGRATED_ID_HEX_LENGTH, "paymentId");
   const prefix = encode_varint(INTEGRATED_ADDRESS_PREFIX);
-  const data = prefix + spendPub.toLowerCase() + viewPub.toLowerCase() + paymentId.toLowerCase();
+  const data =
+    prefix +
+    spendPub.toLowerCase() +
+    viewPub.toLowerCase() +
+    paymentId.toLowerCase();
   const checksum = cn_fast_hash(data).slice(0, ADDRESS_CHECKSUM_SIZE * 2);
   return base58.encode(data + checksum);
 }
@@ -80,15 +85,15 @@ export function encode_integrated_address(spendPub, viewPub, paymentId) {
  * view public keys, plus the embedded payment ID for integrated addresses.
  * Validates the network prefix and the Keccak-256 checksum.
  *
- * Unlike the WASM `crypto.decode_address`, this surfaces `intPaymentId` for
- * integrated addresses (the WASM decoder always returns `null`).
+ * Canonical logic lives in Rust (`address::decode_address_full`); this JS copy
+ * avoids WASM init for view-only / address-only call sites.
  *
  * @param {string} address - Base58 CCX address.
  * @returns {{ spend: string, view: string, intPaymentId: string | null }}
  */
 export function decode_address(address) {
-  if (typeof address !== 'string' || address.length === 0) {
-    throw new Error('address must be a non-empty string');
+  if (typeof address !== "string" || address.length === 0) {
+    throw new Error("address must be a non-empty string");
   }
   const dec = base58.decode(address);
 
@@ -97,7 +102,7 @@ export function decode_address(address) {
   const subPrefix = encode_varint(SUBADDRESS_PREFIX);
   const prefix = dec.slice(0, addrPrefix.length);
   if (prefix !== addrPrefix && prefix !== intPrefix && prefix !== subPrefix) {
-    throw new Error('Invalid address prefix');
+    throw new Error("Invalid address prefix");
   }
 
   const checksumHexLen = ADDRESS_CHECKSUM_SIZE * 2;
@@ -112,7 +117,7 @@ export function decode_address(address) {
     (prefix === intPrefix ? INTEGRATED_ID_HEX_LENGTH : 0) +
     checksumHexLen;
   if (dec.length !== expectedLen) {
-    throw new Error('Invalid address length');
+    throw new Error("Invalid address length");
   }
 
   const body = dec.slice(addrPrefix.length);
@@ -126,16 +131,22 @@ export function decode_address(address) {
     const idEnd = 128 + INTEGRATED_ID_HEX_LENGTH;
     intPaymentId = body.slice(128, idEnd);
     checksum = body.slice(idEnd, idEnd + checksumHexLen);
-    expectedChecksum = cn_fast_hash(prefix + spend + view + intPaymentId).slice(0, checksumHexLen);
+    expectedChecksum = cn_fast_hash(prefix + spend + view + intPaymentId).slice(
+      0,
+      checksumHexLen,
+    );
   } else {
     checksum = body.slice(128, 128 + checksumHexLen);
-    expectedChecksum = cn_fast_hash(prefix + spend + view).slice(0, checksumHexLen);
+    expectedChecksum = cn_fast_hash(prefix + spend + view).slice(
+      0,
+      checksumHexLen,
+    );
   }
   if (!checksum || checksum !== expectedChecksum) {
-    throw new Error('Invalid checksum');
+    throw new Error("Invalid checksum");
   }
 
   return { spend, view, intPaymentId };
 }
 
-export { decode as base58_decode, encode as base58_encode } from './base58.js';
+export { decode as base58_decode, encode as base58_encode } from "./base58.js";

@@ -1,18 +1,4 @@
 /**
- * Encodes a 64-char hex private spend key into a mnemonic phrase.
- *
- * Each 8 hex characters (4 bytes) produce 3 words; a final checksum word is
- * appended for wordsets that have `prefix_len > 0` (all except Electrum).
- * The result is a space-separated string of 25 words for English/Japanese
- * or 24 words for Electrum.
- *
- * @param {string} str - 64-character lowercase hex string (32-byte private key).
- * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
- * @returns {string} Space-separated mnemonic phrase.
- * @throws {string} If the wordset is unknown or the input length is invalid.
- */
-export function mn_encode(str: string, wordset_name?: "english" | "spanish" | "portuguese" | "japanese" | "electrum"): string;
-/**
  * Decodes a mnemonic phrase back into a 64-char hex private spend key.
  *
  * Validates the checksum word (for wordsets with `prefix_len > 0`) and
@@ -27,6 +13,20 @@ export function mn_encode(str: string, wordset_name?: "english" | "spanish" | "p
  *   or the checksum word does not match.
  */
 export function mn_decode(str: string, wordset_name?: "english" | "spanish" | "portuguese" | "japanese" | "electrum"): string;
+/**
+ * Encodes a 64-char hex private spend key into a mnemonic phrase.
+ *
+ * Each 8 hex characters (4 bytes) produce 3 words; a final checksum word is
+ * appended for wordsets that have `prefix_len > 0` (all except Electrum).
+ * The result is a space-separated string of 25 words for English/Japanese
+ * or 24 words for Electrum.
+ *
+ * @param {string} str - 64-character lowercase hex string (32-byte private key).
+ * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
+ * @returns {string} Space-separated mnemonic phrase.
+ * @throws {string} If the wordset is unknown or the input length is invalid.
+ */
+export function mn_encode(str: string, wordset_name?: "english" | "spanish" | "portuguese" | "japanese" | "electrum"): string;
 /**
  * Generates a cryptographically random seed as a lowercase hex string.
  *

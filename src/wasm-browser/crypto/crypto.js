@@ -123,8 +123,8 @@ export function create_address(seed_hex) {
 
 /**
  * decode_address: validate and extract spend/view public keys from an address string.
- * Returns `{spend: hex, view: hex, intPaymentId: null}`.
- * Matches `Cn.decode_address(address)`.
+ * Returns `{ spend: hex, view: hex, intPaymentId: hex | null }`.
+ * Surfaces the embedded payment ID for integrated addresses.
  * @param {string} address
  * @returns {any}
  */
@@ -197,6 +197,68 @@ export function derive_secret_key(derivation_hex, out_index, base_sec_hex) {
         return getStringFromWasm0(ptr3, len3);
     } finally {
         wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
+ * encode_address: build a standard CCX address from spend + view public keys.
+ * Matches `address.encode_address` / `pubkeys_to_string` in conceal-web-wallet.
+ * @param {string} spend_pub_hex
+ * @param {string} view_pub_hex
+ * @returns {string}
+ */
+export function encode_address(spend_pub_hex, view_pub_hex) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(spend_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(view_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.encode_address(ptr0, len0, ptr1, len1);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
+ * encode_integrated_address: build a CCX integrated address with an 8-byte payment ID.
+ * @param {string} spend_pub_hex
+ * @param {string} view_pub_hex
+ * @param {string} payment_id_hex
+ * @returns {string}
+ */
+export function encode_integrated_address(spend_pub_hex, view_pub_hex, payment_id_hex) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passStringToWasm0(spend_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(view_pub_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(payment_id_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.encode_integrated_address(ptr0, len0, ptr1, len1, ptr2, len2);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
     }
 }
 

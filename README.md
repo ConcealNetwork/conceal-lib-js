@@ -153,6 +153,30 @@ Exported constant: `STRUCT_SIZES`.
 | `scanSpendInputs(vins, ctx)` | vins + context | `boolean` | Key images (spend wallet) or global indexes (view-only) |
 | `ownsTx(tx, ctx)` | `TxScanInput` + `TxScanContext` | `boolean` | Receive scan, then spend scan |
 | `ownsTxBatch(txs, ctx)` | array + context | `boolean[]` | **One** `crypto.scan_receive_outputs_batch` WASM call + JS spend checks |
+| `serializeTransaction(tx, headerOnly?)` | `TxToSerialize` + optional `boolean` | hex string | Broadcast-ready serialization (plain ring-signature path, non-RingCT). When `headerOnly` is `true`, omits signatures (prefix only). Supports `input_to_key` / `input_to_deposit_key` and matching vout targets. Throws on invalid hex, signature count mismatch, or unhandled vin/vout types. |
+| `getTransactionPrefixHash(tx)` | `TxToSerialize` | 64-char hex | `cn_fast_hash(serializeTransaction(tx, true))` — prefix hash used for signing. |
+| `serializeTransactionWithHash(tx)` | `TxToSerialize` | `{ raw, hash }` | Full serialization plus `cn_fast_hash(raw)`. Port of `CnTransactions.serialize_tx_with_hash`. |
+
+**Serialization sketch** (plain spend; deposit / withdrawal paths use `input_to_deposit_key` / `txout_to_deposit_key`):
+
+```js
+const { raw, hash } = transactions.serializeTransactionWithHash({
+  version: 1,
+  unlock_time: 0,
+  vin: [{
+    type: "input_to_key",
+    amount: 1000,
+    key_offsets: [42, 7],
+    k_image: "<64-char hex>",
+  }],
+  vout: [{
+    amount: 1000,
+    target: { type: "txout_to_key", data: { key: "<64-char hex>" } },
+  }],
+  extra: "0102abcd",
+  signatures: [["<64-byte sig hex>", "<64-byte sig hex>"]],
+});
+```
 
 **Low-level WASM (advanced):** `crypto.scan_receive_outputs(...)` per tx; `crypto.scan_receive_outputs_batch(view_sec, spend_pub, tx_pub_hex[], indices, keys, tx_offsets)` — `tx_offsets` length `txs.length + 1` (CSR slices into flat output arrays).
 
@@ -186,12 +210,11 @@ const owned = transactions.ownsTx(
 
 ### Namespace `address` — JavaScript (`src/js/address.js`, `src/js/base58.js`)
 
-> Pure JS-tier address encoding — no WASM, works without `await init()`.
-> Mirrors `pubkeys_to_string` in `conceal-web-wallet`: `varint(prefix) + spend + view
-> [+ paymentId] + checksum`, base58-encoded. Lets callers that already hold public keys
-> (view-only wallets) or a payment ID build an address without a seed.
-> The WASM `crypto.create_address` / `crypto.decode_address` remain the seed-based path;
-> `address.encode_address` reproduces their output byte-for-byte (verified by parity tests).
+> **Zero-init JS tier** — no WASM, works without `await init()`.
+> Canonical logic lives in Rust (`rust/crypto/src/address.rs`); this namespace mirrors it
+> for view-only wallets that already hold public keys. When WASM is loaded,
+> `crypto.encode_address` / `crypto.encode_integrated_address` / `crypto.decode_address`
+> expose the same behavior from Rust.
 
 Exported constants: `ADDRESS_PREFIX` (`0x7ad4`), `INTEGRATED_ADDRESS_PREFIX` (`0x7ad5`), `SUBADDRESS_PREFIX` (`0x7ad6`), `ADDRESS_CHECKSUM_SIZE` (4), `INTEGRATED_ID_SIZE` (8).
 
@@ -199,7 +222,7 @@ Exported constants: `ADDRESS_PREFIX` (`0x7ad4`), `INTEGRATED_ADDRESS_PREFIX` (`0
 |---|---|---|---|
 | `encode_address(spendPub, viewPub)` | two 64-char hex public keys | Base58 CCX address | `varint(ADDRESS_PREFIX) + spend + view + checksum`; throws on bad hex/length |
 | `encode_integrated_address(spendPub, viewPub, paymentId)` | two 64-char hex keys + 16-char hex payment ID | Base58 CCX integrated address | `varint(INTEGRATED_ADDRESS_PREFIX) + spend + view + paymentId + checksum`; throws on bad input |
-| `decode_address(address)` | Base58 CCX address | `{ spend, view, intPaymentId }` | Validates prefix + checksum. **Surfaces `intPaymentId` for integrated addresses** (the WASM `crypto.decode_address` always returns `null`). |
+| `decode_address(address)` | Base58 CCX address | `{ spend, view, intPaymentId }` | Validates prefix, exact length, and checksum. Surfaces `intPaymentId` for integrated addresses. |
 | `base58_encode(hex)` / `base58_decode(b58)` | hex ↔ base58 | base58 / hex | CryptoNote block-based base58 (re-exported from `base58.js`) |
 
 **Low-level base58 (`src/js/base58.js`):** `encode(hex)` / `decode(b58)` — block-based CryptoNote base58 (8-byte blocks → 11 chars), native `BigInt`. Throws `Invalid block size` / `Overflow` / `Invalid symbol` / `Invalid encoded length` on malformed input.
@@ -283,7 +306,9 @@ Rust unit tests verify **generate → check** round-trips against the same C `cr
 | Function | Parameters | Returns | Notes |
 |---|---|---|---|
 | `create_address(seed_hex)` | 64-char hex seed | `{ spend: {sec, pub}, view: {sec, pub}, public_addr: string }` | Monero-compatible: `view = generate_keys(cn_fast_hash(spend.sec))` |
-| `decode_address(address)` | Base58 Conceal address string | `{ spend: hex, view: hex, intPaymentId: null }` | Validates checksum; throws on invalid prefix or checksum |
+| `encode_address(spend_pub_hex, view_pub_hex)` | two 64-char hex public keys | Base58 CCX address | Same output as `address.encode_address` (Rust canonical) |
+| `encode_integrated_address(spend_pub_hex, view_pub_hex, payment_id_hex)` | two keys + 16-char hex payment ID | Base58 integrated address | Same output as `address.encode_integrated_address` |
+| `decode_address(address)` | Base58 Conceal address string | `{ spend: hex, view: hex, intPaymentId: hex \| null }` | Validates prefix, exact length, and checksum; surfaces integrated payment ID |
 
 #### Conceal Network constants baked in
 
@@ -336,9 +361,11 @@ Rust unit tests verify **generate → check** round-trips against the same C `cr
 | `scan_receive_outputs` | `crypto` | **Rust WASM** | Batched receive-output scan |
 | `ownsTx` / `scanReceiveOutputs` | `transactions` | **mixed** | JS extra parse + one WASM receive scan |
 | `scanSpendInputs` | `transactions` | **plain JS** | Wallet context sets |
-| `create_address / decode_address` | `crypto` | **Rust WASM** | Seed-based address encode/decode |
-| `encode_address / encode_integrated_address` | `address` | **plain JS** | Encode from public keys (view-only / integrated); parity with WASM `create_address` |
-| `encode / decode` (base58) | `base58` | **plain JS** | CryptoNote block-based base58 (native `BigInt`) |
+| `serializeTransaction` / `getTransactionPrefixHash` | `transactions` | **plain JS** | CryptoNote tx wire format (non-RingCT); uses `cnutils` varint + `cn_fast_hash` |
+| `create_address` | `crypto` | **Rust WASM** | Seed-based key generation + address |
+| `encode_address / encode_integrated_address` | `crypto` or `address` | **Rust WASM** or **plain JS** | Encode from public keys; JS tier avoids WASM init |
+| `decode_address` | `crypto` or `address` | **Rust WASM** or **plain JS** | Same semantics in both tiers (payment ID + malleability checks) |
+| `encode / decode` (base58) | `address` | **plain JS** | CryptoNote block-based base58 (native `BigInt`) |
 | `chacha8 / chacha12 / chacha20` | `cypher` | **Rust WASM** | Stream cipher — compute-heavy |
 
 ---

@@ -7,6 +7,7 @@
  * @module transactions
  */
 
+import { scan_receive_outputs, scan_receive_outputs_batch } from "#crypto-wasm";
 import {
   bintohex,
   cn_fast_hash,
@@ -15,10 +16,6 @@ import {
   hextobin,
   valid_hex,
 } from "./cnutils.js";
-import {
-  scan_receive_outputs,
-  scan_receive_outputs_batch,
-} from "#crypto-wasm";
 
 export const TX_EXTRA_TAG_PADDING = 0x00;
 export const TX_EXTRA_TAG_PUBKEY = 0x01;
@@ -248,7 +245,9 @@ export function scanSpendInputs(vins, ctx) {
 
   const spendSecret = ctx.spendSecretHex;
   const hasSpend =
-    typeof spendSecret === "string" && spendSecret !== null && spendSecret !== "";
+    typeof spendSecret === "string" &&
+    spendSecret !== null &&
+    spendSecret !== "";
 
   if (hasSpend) {
     const owned = ctx.ownedKeyImages;
@@ -300,7 +299,12 @@ export function ownsTx(tx, ctx) {
   if (txPub) {
     try {
       if (
-        scanReceiveOutputs(txPub, ctx.viewSecretHex, ctx.spendPublicHex, tx.vouts)
+        scanReceiveOutputs(
+          txPub,
+          ctx.viewSecretHex,
+          ctx.spendPublicHex,
+          tx.vouts,
+        )
       ) {
         return true;
       }
@@ -465,7 +469,10 @@ export function serializeTransaction(tx, headerOnly = false) {
     switch (vout.target.type) {
       case "txout_to_key": {
         buf += "02";
-        if (typeof vout.target.data.key !== "string" || vout.target.data.key.length !== 64) {
+        if (
+          typeof vout.target.data.key !== "string" ||
+          vout.target.data.key.length !== 64
+        ) {
           throw new Error("txout_to_key requires a 64-char key hex");
         }
         buf += vout.target.data.key;
@@ -493,7 +500,11 @@ export function serializeTransaction(tx, headerOnly = false) {
   // Must be an EVEN-length hex string: valid_hex only checks the alphabet, so an
   // odd-length extra would make `extra.length / 2` fractional and silently
   // corrupt the byte count + append a half-byte. Also guards against undefined.
-  if (typeof tx.extra !== "string" || !valid_hex(tx.extra) || tx.extra.length % 2 !== 0) {
+  if (
+    typeof tx.extra !== "string" ||
+    !valid_hex(tx.extra) ||
+    tx.extra.length % 2 !== 0
+  ) {
     throw new Error("Tx extra must be an even-length hex string");
   }
 

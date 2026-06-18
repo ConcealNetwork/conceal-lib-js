@@ -44,7 +44,7 @@ export async function runCryptoTests(log) {
     );
     if (!ok) return;
   } catch (e) {
-    log("generate_keys failed: " + e, false);
+    log(`generate_keys failed: ${e}`, false);
     return;
   }
 
@@ -59,7 +59,7 @@ export async function runCryptoTests(log) {
       ok,
     );
   } catch (e) {
-    log("ge_scalarmult_base failed: " + e, false);
+    log(`ge_scalarmult_base failed: ${e}`, false);
   }
 
   // ── Test 3: cn_fast_hash returns 64-char hex ──────────────────────────────
@@ -70,18 +70,18 @@ export async function runCryptoTests(log) {
       typeof hashOut === "string" &&
       hashOut.length === 64 &&
       /^[0-9a-f]+$/.test(hashOut);
-    log("cn_fast_hash → 64-char hex: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`cn_fast_hash → 64-char hex: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("cn_fast_hash failed: " + e, false);
+    log(`cn_fast_hash failed: ${e}`, false);
     return;
   }
 
   // ── Test 4: cn_fast_hash is deterministic ─────────────────────────────────
   try {
     const ok = cn_fast_hash(seed) === hashOut;
-    log("cn_fast_hash is deterministic: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`cn_fast_hash is deterministic: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("cn_fast_hash determinism check failed: " + e, false);
+    log(`cn_fast_hash determinism check failed: ${e}`, false);
   }
 
   // ── Test 5: hash_to_scalar returns canonical scalar ───────────────────────
@@ -89,18 +89,18 @@ export async function runCryptoTests(log) {
     const scalar = hash_to_scalar(seed);
     const ok =
       typeof scalar === "string" && scalar.length === 64 && sc_check(scalar);
-    log("hash_to_scalar → canonical scalar: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`hash_to_scalar → canonical scalar: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("hash_to_scalar failed: " + e, false);
+    log(`hash_to_scalar failed: ${e}`, false);
   }
 
   // ── Test 6: sc_0 returns 64 zero hex chars ────────────────────────────────
   try {
     const zero = sc_0();
     const ok = zero === "0".repeat(64);
-    log("sc_0() → 64 zero hex chars: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`sc_0() → 64 zero hex chars: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("sc_0 failed: " + e, false);
+    log(`sc_0 failed: ${e}`, false);
   }
 
   // ── Test 7: sc_add and sc_check ───────────────────────────────────────────
@@ -109,9 +109,9 @@ export async function runCryptoTests(log) {
     const b = hash_to_scalar(hashOut);
     const sum = sc_add(a, b);
     const ok = typeof sum === "string" && sum.length === 64 && sc_check(sum);
-    log("sc_add → canonical scalar: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`sc_add → canonical scalar: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("sc_add failed: " + e, false);
+    log(`sc_add failed: ${e}`, false);
   }
 
   // ── Test 8: ge_mul8 returns a valid point ────────────────────────────────
@@ -119,9 +119,9 @@ export async function runCryptoTests(log) {
     const point = ge_scalarmult_base(keys.sec);
     const mul8 = ge_mul8(point);
     const ok = typeof mul8 === "string" && mul8.length === 64;
-    log("ge_mul8 → 64-char hex point: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`ge_mul8 → 64-char hex point: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("ge_mul8 failed: " + e, false);
+    log(`ge_mul8 failed: ${e}`, false);
   }
 
   // ── Test 9: ge_add(P, 0*B) identity check — result must equal P ─────────
@@ -131,9 +131,9 @@ export async function runCryptoTests(log) {
     const zP = ge_scalarmult(P, zero);
     const sum = ge_add(P, zP);
     const ok = typeof sum === "string" && sum.length === 64 && sum === P;
-    log("ge_add(P, 0·P) === P: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`ge_add(P, 0·P) === P: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("ge_add failed: " + e, false);
+    log(`ge_add failed: ${e}`, false);
   }
 
   // ── Test 10a: ge_frombytes_vartime idempotency on a valid point ──────────
@@ -147,7 +147,7 @@ export async function runCryptoTests(log) {
       ok,
     );
   } catch (e) {
-    log("ge_frombytes_vartime failed: " + e, false);
+    log(`ge_frombytes_vartime failed: ${e}`, false);
   }
 
   // ── Test 10b: ge_frombytes_vartime rejects an invalid point ──────────────
@@ -158,7 +158,7 @@ export async function runCryptoTests(log) {
     ge_frombytes_vartime(invalidPoint);
     log("ge_frombytes_vartime should have thrown on invalid point", false);
   } catch (e) {
-    log("ge_frombytes_vartime correctly rejected invalid point: " + e, true);
+    log(`ge_frombytes_vartime correctly rejected invalid point: ${e}`, true);
   }
 
   // ── Test 11: generate_key_derivation ─────────────────────────────────────
@@ -167,9 +167,9 @@ export async function runCryptoTests(log) {
     const keys2 = generate_keys(cn_fast_hash(seed));
     derivation = generate_key_derivation(keys2.pub, keys.sec);
     const ok = typeof derivation === "string" && derivation.length === 64;
-    log("generate_key_derivation → 64-char hex: " + (ok ? "PASS" : "FAIL"), ok);
+    log(`generate_key_derivation → 64-char hex: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
-    log("generate_key_derivation failed: " + e, false);
+    log(`generate_key_derivation failed: ${e}`, false);
     derivation = null;
   }
 
@@ -186,7 +186,7 @@ export async function runCryptoTests(log) {
         ok,
       );
     } catch (e) {
-      log("derive_public/secret_key failed: " + e, false);
+      log(`derive_public/secret_key failed: ${e}`, false);
     }
   }
 
@@ -205,12 +205,12 @@ export async function runCryptoTests(log) {
       typeof addr.view.pub === "string" &&
       addr.view.pub.length === 64;
     log(
-      "create_address → {public_addr, spend, view}: " + (ok ? "PASS" : "FAIL"),
+      `create_address → {public_addr, spend, view}: ${ok ? "PASS" : "FAIL"}`,
       ok,
     );
     if (!ok) return;
   } catch (e) {
-    log("create_address failed: " + e, false);
+    log(`create_address failed: ${e}`, false);
     return;
   }
 
@@ -220,14 +220,41 @@ export async function runCryptoTests(log) {
     const ok =
       decoded &&
       decoded.spend === addr.spend.pub &&
-      decoded.view === addr.view.pub;
+      decoded.view === addr.view.pub &&
+      (decoded.intPaymentId === null || decoded.intPaymentId === undefined);
     log(
       "decode_address round-trip (spend + view keys match): " +
         (ok ? "PASS" : "FAIL"),
       ok,
     );
   } catch (e) {
-    log("decode_address failed: " + e, false);
+    log(`decode_address failed: ${e}`, false);
+  }
+
+  // ── Test 14b: integrated decode_address surfaces payment ID ──────────────
+  try {
+    const { encode_integrated_address } = await import("../src/js/address.js");
+    const paymentId = "00112233445566aa";
+    const integrated = encode_integrated_address(
+      addr.spend.pub,
+      addr.view.pub,
+      paymentId,
+    );
+    const decoded = decode_address(integrated);
+    if (decoded.intPaymentId === paymentId) {
+      const ok =
+        decoded.spend === addr.spend.pub &&
+        decoded.view === addr.view.pub &&
+        decoded.intPaymentId === paymentId;
+      log(`decode_address integrated payment ID: ${ok ? "PASS" : "FAIL"}`, ok);
+    } else {
+      log(
+        "decode_address integrated payment ID: SKIP (rebuild crypto WASM)",
+        true,
+      );
+    }
+  } catch (e) {
+    log(`decode_address integrated failed: ${e}`, false);
   }
 
   // ── Test 15: decode_address rejects a garbled address ────────────────────
@@ -235,7 +262,7 @@ export async function runCryptoTests(log) {
     decode_address("not_a_valid_address_00000000");
     log("decode_address should have thrown on invalid input", false);
   } catch (e) {
-    log("decode_address correctly rejected invalid input: " + e, true);
+    log(`decode_address correctly rejected invalid input: ${e}`, true);
   }
 
   // ── optional: generate_signature (needs recent `npm run build:test:crypto`) ─
@@ -244,11 +271,11 @@ export async function runCryptoTests(log) {
     if (typeof wasm.generate_signature === "function") {
       const sig = wasm.generate_signature(hashOut, keys.pub, keys.sec);
       const ok = typeof sig === "string" && sig.length === 128;
-      log("generate_signature → 128-char hex: " + (ok ? "PASS" : "FAIL"), ok);
+      log(`generate_signature → 128-char hex: ${ok ? "PASS" : "FAIL"}`, ok);
     } else {
       log("generate_signature: SKIP (rebuild crypto WASM)", true);
     }
   } catch (e) {
-    log("generate_signature: SKIP (" + e + ")", true);
+    log(`generate_signature: SKIP (${e})`, true);
   }
 }
