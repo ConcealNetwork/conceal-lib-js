@@ -20,9 +20,9 @@
  *
  * - **`cn`** — `random_keypair`, `underive_public_key` (JS + WASM).
  * - **`transactions`** — `ownsTx`, receive/spend scan helpers (JS + WASM).
- * - **`address`** — address encoding for view-only / integrated addresses
- *   (`encode_address`, `encode_integrated_address`) plus CryptoNote base58
- *   (JS tier, no WASM).
+ * - **`address`** — address encoding/decoding for view-only / integrated addresses
+ *   (`encode_address`, `encode_integrated_address`, `decode_address` — which
+ *   surfaces the integrated payment ID) plus CryptoNote base58 (JS tier, no WASM).
  * - **`random`** — `rand32`, `rand16`, `rand8` (browser entropy via `mnemonic`).
  *
  * - **`sha3_384`** — SHA3-384 (NIST padding) as lowercase hex (plain JS, `tiers/sha3.js`).

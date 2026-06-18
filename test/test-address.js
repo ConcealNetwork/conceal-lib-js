@@ -179,4 +179,63 @@ export async function runAddressTests(log) {
   } catch (e) {
     log(`encode_integrated_address validation test failed: ${e}`, false);
   }
+
+  // ── JS decode_address: surfaces integrated payment ID (issue #6) ────────────
+  try {
+    const keys = create_address(seeds[0]);
+    const threw = (fn) => {
+      try {
+        fn();
+        return false;
+      } catch {
+        return true;
+      }
+    };
+
+    // Plain address: round-trips spend/view, no payment ID.
+    const plain = address.encode_address(keys.spend.pub, keys.view.pub);
+    const dPlain = address.decode_address(plain);
+    const plainOk =
+      dPlain.spend === keys.spend.pub &&
+      dPlain.view === keys.view.pub &&
+      dPlain.intPaymentId === null;
+
+    // Integrated address: SURFACES the payment ID (WASM decode_address returns null).
+    const paymentId = "00112233445566aa";
+    const integrated = address.encode_integrated_address(keys.spend.pub, keys.view.pub, paymentId);
+    const dInt = address.decode_address(integrated);
+    const intOk =
+      dInt.spend === keys.spend.pub &&
+      dInt.view === keys.view.pub &&
+      dInt.intPaymentId === paymentId;
+
+    // Parity with WASM decode_address on spend/view (WASM omits the payment ID).
+    const wasmDecoded = decode_address(integrated);
+    const parityOk = wasmDecoded.spend === dInt.spend && wasmDecoded.view === dInt.view;
+
+    // Tampered checksum (flip last char) and garbage must throw.
+    const lastChar = plain.slice(-1);
+    const tampered = `${plain.slice(0, -1)}${lastChar === "1" ? "2" : "1"}`;
+    const checksumThrows = threw(() => address.decode_address(tampered));
+    const garbageThrows = threw(() => address.decode_address("not-an-address"));
+    const nonStringThrows = threw(() => address.decode_address(null));
+
+    // Malleability: padding a valid address's payload with trailing bytes and
+    // re-encoding must be rejected (would otherwise decode to the same keys).
+    const paddedHex = `${address.base58_decode(plain)}00`;
+    const padded = address.base58_encode(paddedHex);
+    const paddedThrows = threw(() => address.decode_address(padded));
+
+    const ok =
+      plainOk &&
+      intOk &&
+      parityOk &&
+      checksumThrows &&
+      garbageThrows &&
+      nonStringThrows &&
+      paddedThrows;
+    log(`decode_address surfaces integrated payment ID (issue #6): ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`decode_address test failed: ${e}`, false);
+  }
 }
