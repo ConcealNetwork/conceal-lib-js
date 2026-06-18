@@ -18,7 +18,8 @@
     "src/js/cn.js",
     "src/js/transactions.js",
     "src/js/base58.js",
-    "src/js/address.js"
+    "src/js/address.js",
+    "src/js/tiers/secretbox.js"
   ],
   "exclude": [
     "src/wasm",

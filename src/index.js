@@ -27,6 +27,9 @@
  *
  * - **`sha3_384`** — SHA3-384 (NIST padding) as lowercase hex (plain JS, `tiers/sha3.js`).
  *
+ * - **`secretbox`** — XSalsa20-Poly1305 encrypt/decrypt (plain JS, `tiers/secretbox.js`).
+ *   TweetNaCl-compatible API for encrypted wallet files (`WalletRepository`).
+ *
  * ## Runtimes
  *
  * - **Node / Vite / Webpack** — import from `"concealjs"` (this file). WASM is bundled;
@@ -49,6 +52,7 @@ export * as cn from "./js/cn.js";
 export * as cnutils from "./js/cnutils.js";
 export * as mnemonic from "./js/mnemonic.js";
 export * as random from "./js/random.js";
+export { secretbox } from "./js/tiers/secretbox.js";
 export { sha3_384 } from "./js/tiers/sha3.js";
 export * as transactions from "./js/transactions.js";
 export * as crypto from "./wasm/crypto/crypto.js";

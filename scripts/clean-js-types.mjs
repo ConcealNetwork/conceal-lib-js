@@ -20,6 +20,7 @@ const STALE_DTS = [
   "src/js/tiers/nacl.d.ts",
   "src/js/tiers/biginteger.d.ts",
   "src/js/tiers/sha3.d.ts",
+  "src/js/tiers/secretbox.d.ts",
 ];
 
 for (const rel of STALE_DTS) {

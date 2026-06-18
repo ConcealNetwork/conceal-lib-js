@@ -5,6 +5,7 @@ import { runCnutilsTests } from "./test-cnutils.js";
 import { runCryptoTests } from "./test-crypto.js";
 import { runCypherTests } from "./test-cypher.js";
 import { runMnemonicTests } from "./test-mnemonic.js";
+import { runSecretboxTests } from "./test-secretbox.js";
 import { runTransactionsTests } from "./test-transactions.js";
 
 const SUITES = [
@@ -15,6 +16,7 @@ const SUITES = [
   { name: "address", run: runAddressTests },
   { name: "cn", run: runCnTests },
   { name: "cypher", run: runCypherTests },
+  { name: "secretbox", run: runSecretboxTests },
 ];
 
 async function runAll() {

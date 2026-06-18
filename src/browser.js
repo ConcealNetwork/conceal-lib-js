@@ -31,6 +31,7 @@ export * as transactions from "./js/transactions.js";
 import initCrypto from "./wasm-browser/crypto/crypto.js";
 import initCypher from "./wasm-browser/cypher/cypher.js";
 
+export { secretbox } from "./js/tiers/secretbox.js";
 export { sha3_384 } from "./js/tiers/sha3.js";
 export * as crypto from "./wasm-browser/crypto/crypto.js";
 export * as cypher from "./wasm-browser/cypher/cypher.js";

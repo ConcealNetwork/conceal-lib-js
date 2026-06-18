@@ -102,6 +102,26 @@ Wallet integrity checks use `sha384-${sha3_384(content)}` — the `sha384-` pref
 
 ---
 
+### `secretbox` — plain JavaScript (`src/js/tiers/secretbox.js`)
+
+> XSalsa20-Poly1305 authenticated encryption — TweetNaCl / `nacl-fast` compatible.
+> Same implementation as `conceal-web-wallet/src/lib/nacl-fast.js` (public domain, TweetNaCl 20140427).
+> Used by `WalletRepository` for encrypted wallet files (`data` + `nonce` envelope).
+
+| Function | Parameters | Returns | Notes |
+|---|---|---|---|
+| `secretbox(msg, nonce, key)` | `msg`: `Uint8Array`; `nonce`: `Uint8Array[24]`; `key`: `Uint8Array[32]` | `Uint8Array` (ciphertext + 16-byte Poly1305 tag) | Throws `bad key size` / `bad nonce size` |
+| `secretbox.open(box, nonce, key)` | Same sizes as above | `Uint8Array` plaintext, or `null` if auth fails | Matches `nacl.secretbox.open` |
+| `secretbox.keyLength` | — | `32` | |
+| `secretbox.nonceLength` | — | `24` | Wallet stores ASCII nonce from 16 random bytes (base64) → 24 UTF-8 bytes |
+| `secretbox.overheadLength` | — | `16` | Poly1305 tag size |
+
+Top-level export: `import { secretbox } from "concealjs"`.
+
+Wallet password normalization (32-char zero-padded ASCII, last 32 UTF-8 bytes for non-Latin) is done in `WalletRepository`, not in this module.
+
+---
+
 ### Namespace `cnutils` — JavaScript (`src/js/cnutils.js`)
 
 > Port of `CnUtils` from `conceal-web-wallet/src/model/Cn.ts`.
@@ -346,6 +366,7 @@ Rust unit tests verify **generate → check** round-trips against the same C `cr
 | `random_keypair` / `underive_public_key` | `cn` | **mixed** | `random` + `cnutils` + `crypto` WASM |
 | `hextobin`, `encode_varint`, `ge_add`, … | `cnutils` | **plain JS** (+ `nacl.ll`) | `CnUtils` helpers |
 | `sha3_384` | package root | **plain JS** (`tiers/sha3.js`) | NIST SHA3-384; wallet `ALLOWED_EXCEPTIONS_INTEGRITY_HASH` |
+| `secretbox` / `secretbox.open` | package root | **plain JS** (`tiers/secretbox.js`) | XSalsa20-Poly1305; wallet encrypted wallet envelope |
 | `cn_fast_hash` | `cnutils` | **plain JS** (`tiers/sha3.js`) | Same Keccak as wallet; faster than WASM boundary for typical hex |
 | `cn_fast_hash` | `crypto` | **Rust WASM** | Same digest; use when already in WASM-only path |
 | `derivation_to_scalar`, RCT ECDH | `cnutils` → `crypto` | **mixed** | JS glue + WASM scalars |
@@ -420,7 +441,7 @@ cargo test --workspace   # 33 tests: 16 crypto + 10 cypher + 7 mnemonic
 
 ## JS integration tests
 
-Browser suite (`test/`): mnemonic, **cnutils**, crypto, transactions, **address**, **cn**, cypher.
+Browser suite (`test/`): mnemonic, **cnutils**, crypto, transactions, **address**, **cn**, cypher, **secretbox**.
 
 ```sh
 npm run build              # src/wasm for cnutils + package consumers
@@ -465,7 +486,7 @@ concealjs/
 │   │   ├── address.js      # encode_address, encode_integrated_address (JS-tier, no WASM)
 │   │   ├── base58.js       # CryptoNote block-based base58 (native BigInt)
 │   │   ├── cnutils.js      # CnUtils port
-│   │   └── tiers/          # biginteger.js, nacl.js, sha3.js
+│   │   └── tiers/          # biginteger.js, nacl.js, secretbox.js, sha3.js
 │   └── wasm/               # wasm-pack bundler outputs (git-ignored)
 │       ├── crypto/
 │       └── cypher/

@@ -13,3 +13,4 @@ export * as crypto from "./wasm-browser/crypto/crypto";
 export * as cypher from "./wasm-browser/cypher/cypher";
 
 export { sha3_384 } from "./js/tiers/sha3";
+export { secretbox } from "./js/tiers/secretbox";
