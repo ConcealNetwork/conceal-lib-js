@@ -47,6 +47,17 @@ jobs:
       - name: Install dev dependencies
         run: npm ci --ignore-scripts
 
+      - name: Verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG"
+            echo "Bump package.json to $TAG before tagging, or retag after bumping."
+            exit 1
+          fi
+          echo "OK: tag v$TAG matches package.json $PKG"
+
       - name: Build WASM
         run: npm run build
 

@@ -1,6 +1,6 @@
 {
   "name": "conceal-lib-js",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Conceal Network cryptographic primitives — hybrid library routing calls to Rust/WASM or native JavaScript depending on the operation",
   "author": "Conceal Devs",
   "type": "module",
