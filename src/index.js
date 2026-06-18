@@ -20,6 +20,9 @@
  *
  * - **`cn`** — `random_keypair`, `underive_public_key` (JS + WASM).
  * - **`transactions`** — `ownsTx`, receive/spend scan helpers (JS + WASM).
+ * - **`address`** — address encoding for view-only / integrated addresses
+ *   (`encode_address`, `encode_integrated_address`) plus CryptoNote base58
+ *   (JS tier, no WASM).
  * - **`random`** — `rand32`, `rand16`, `rand8` (browser entropy via `mnemonic`).
  *
  * - **`sha3_384`** — SHA3-384 (NIST padding) as lowercase hex (plain JS, `tiers/sha3.js`).
@@ -46,6 +49,7 @@ export * as cnutils  from "./js/cnutils.js";
 export * as random   from "./js/random.js";
 export * as cn           from "./js/cn.js";
 export * as transactions from "./js/transactions.js";
+export * as address      from "./js/address.js";
 export * as crypto       from "./wasm/crypto/crypto.js";
 export * as cypher   from "./wasm/cypher/cypher.js";
 export { sha3_384 } from "./js/tiers/sha3.js";

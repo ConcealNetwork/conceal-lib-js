@@ -26,6 +26,7 @@ export * as cnutils from "./js/cnutils.js";
 export * as random from "./js/random.js";
 export * as cn from "./js/cn.js";
 export * as transactions from "./js/transactions.js";
+export * as address from "./js/address.js";
 
 import initCrypto from "./wasm-browser/crypto/crypto.js";
 import initCypher from "./wasm-browser/cypher/cypher.js";

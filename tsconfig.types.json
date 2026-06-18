@@ -16,7 +16,9 @@
     "src/js/cnutils.js",
     "src/js/random.js",
     "src/js/cn.js",
-    "src/js/transactions.js"
+    "src/js/transactions.js",
+    "src/js/base58.js",
+    "src/js/address.js"
   ],
   "exclude": [
     "src/wasm",
