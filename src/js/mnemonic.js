@@ -232,8 +232,9 @@ function mn_decode(str, wordset_name) {
 /**
  * Generates a cryptographically random seed as a lowercase hex string.
  *
- * Uses `window.crypto.getRandomValues` — browser-only.  Retries up to
- * 5 times before throwing if the CSPRNG returns all-zero output.
+ * Uses `globalThis.crypto.getRandomValues` (Web Crypto) — works in browsers,
+ * Node 20+, and Web Workers alike.  Retries up to 5 times before throwing if
+ * the CSPRNG returns all-zero output.
  *
  * The returned value is raw entropy and is NOT automatically reduced
  * modulo the Ed25519 group order.  Pass it through `crypto.sc_reduce32`
@@ -242,19 +243,16 @@ function mn_decode(str, wordset_name) {
  * @param {number} bits - Number of random bits to generate.  Must be a
  *   positive multiple of 32; typically `256` for a 32-byte seed.
  * @returns {string} Lowercase hex string of length `bits / 4`.
- * @throws {string} If `bits` is not a multiple of 32, or if the browser
+ * @throws {string} If `bits` is not a multiple of 32, or if the environment
  *   does not support the Web Crypto API, or if random generation fails.
  */
 function mn_random(bits) {
   if (bits % 32 !== 0)
     throw `Something weird went wrong: Invalid number of bits - ${bits}`;
   var array = new Uint32Array(bits / 32);
-  if (!window.crypto)
-    window.alert(
-      "Unfortunately this program only runs on browsers that support the JavaScript Crypto API",
-    );
-  if (!window.crypto)
-    throw "Unfortunately Conceal Network only runs on browsers that support the JavaScript Crypto API";
+  var cryptoApi = globalThis.crypto;
+  if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function")
+    throw "Unfortunately Conceal Network only runs in environments that support the Web Crypto API";
   var i = 0;
 
   function arr_is_zero() {
@@ -265,7 +263,7 @@ function mn_random(bits) {
   }
 
   do {
-    window.crypto.getRandomValues(array);
+    cryptoApi.getRandomValues(array);
     ++i;
   } while (i < 5 && arr_is_zero());
   if (arr_is_zero()) {

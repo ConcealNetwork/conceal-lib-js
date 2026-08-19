@@ -30,8 +30,9 @@ export function mn_encode(str: string, wordset_name?: "english" | "spanish" | "p
 /**
  * Generates a cryptographically random seed as a lowercase hex string.
  *
- * Uses `window.crypto.getRandomValues` — browser-only.  Retries up to
- * 5 times before throwing if the CSPRNG returns all-zero output.
+ * Uses `globalThis.crypto.getRandomValues` (Web Crypto) — works in browsers,
+ * Node 20+, and Web Workers alike.  Retries up to 5 times before throwing if
+ * the CSPRNG returns all-zero output.
  *
  * The returned value is raw entropy and is NOT automatically reduced
  * modulo the Ed25519 group order.  Pass it through `crypto.sc_reduce32`
@@ -40,7 +41,7 @@ export function mn_encode(str: string, wordset_name?: "english" | "spanish" | "p
  * @param {number} bits - Number of random bits to generate.  Must be a
  *   positive multiple of 32; typically `256` for a 32-byte seed.
  * @returns {string} Lowercase hex string of length `bits / 4`.
- * @throws {string} If `bits` is not a multiple of 32, or if the browser
+ * @throws {string} If `bits` is not a multiple of 32, or if the environment
  *   does not support the Web Crypto API, or if random generation fails.
  */
 export function mn_random(bits: number): string;
