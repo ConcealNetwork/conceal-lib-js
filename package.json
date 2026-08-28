@@ -54,6 +54,7 @@
     "build:test": "npm run build:test:crypto && npm run build:test:cypher",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
+    "test": "node --experimental-wasm-modules test/run-node.mjs",
     "format": "biome format .",
     "format:fix": "biome format . --write",
     "types": "node scripts/clean-js-types.mjs && tsc -p tsconfig.types.json",

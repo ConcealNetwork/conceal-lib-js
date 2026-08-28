@@ -14,12 +14,22 @@ npm run build               # wasm-pack build → src/wasm + src/wasm-browser (n
 npm run types               # tsc --noEmit
 npm run lint                # Biome lint (lint:fix to autofix)
 npm run format              # Biome format (format:fix to write)
+npm test                    # headless Node run of the test/ suites (see below)
 npm run release             # build + types + npm pack (produces the release tarball)
 ```
 
 WASM rebuild (only after editing Rust): `npm run build` — requires `wasm-pack` and `clang` (both must be installed). Do not rebuild unless you changed Rust sources; the committed artifacts are the source of truth for downstream consumers.
 
-Quality gate before completing changes: `npm run types && npm run lint`. There is no vitest test suite in this repo; correctness is verified via the `tests/` targets of downstream consumers (`conceal-wallet-sdk`).
+Quality gate before completing changes: `npm run types && npm run lint && npm test`.
+
+## Tests
+
+The suites in `test/` (`test-mnemonic`, `test-cnutils`, `test-crypto`, `test-transactions`, `test-address`, `test-cn`, `test-cypher`, `test-secretbox`) run two ways:
+
+- **`npm test`** — headless Node (`test/run-node.mjs`), gated in CI (`ci.yml`). The suites' browser-target WASM imports (`./wasm/crypto/crypto.js`, `./wasm/cypher/cypher.js`, which only exist after `npm run build:test`) are redirected by `test/node/hooks.mjs` to the committed bundler-target shims in `test/node/`, loaded via `node --experimental-wasm-modules`. The runner shims `window` for `mn_random` (Node provides webcrypto). It exits non-zero on any failure and skips the DOM benchmarks.
+- **`test/index.html`** — the interactive browser harness (needs `npm run build:test` first; also runs the benchmarks). Stay the guideline when adding checks: add them to the shared suite files so BOTH runners execute them.
+
+When adding or changing behavior covered by a suite, update the suite once — both runners pick it up. CI (`ci.yml`) runs lint + types + tests on every PR and push to `master`.
 
 ## Conventions & gotchas
 
