@@ -1,7 +1,8 @@
 /**
  * Random hex entropy for Conceal Network.
  *
- * `rand*` helpers use the browser Web Crypto API via `mnemonic.mn_random`.
+ * `rand*` helpers use the Web Crypto API via `mnemonic.mn_random`
+ * (browsers, Node 20+, and Web Workers).
  * `random_scalar` additionally uses WASM `sc_reduce32` (canonical scalar mod *l*).
  *
  * @module random
