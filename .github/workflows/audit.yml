@@ -33,6 +33,9 @@ jobs:
       - name: rustfmt + clippy (check.sh)
         run: bash check.sh all
 
+      - name: Rust unit tests
+        run: cargo test --workspace
+
       - name: Set up Node
         uses: actions/setup-node@v5
         with:

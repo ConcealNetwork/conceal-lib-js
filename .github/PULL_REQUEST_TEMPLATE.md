@@ -14,6 +14,7 @@
 - [ ] `npm run lint`
 - [ ] `npm run format`
 - [ ] `npm run types`
+- [ ] `npm run test`
 
 ## Test plan
 - [ ] `npm run build:test` and `npx serve .`
