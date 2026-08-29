@@ -8,7 +8,7 @@
  * Public API:
  *   mn_encode(seed_hex, wordset_name?) → mnemonic string
  *   mn_decode(mnemonic, wordset_name?) → seed hex string
- *   mn_random(bits)                   → random seed hex (browser only)
+ *   mn_random(bits)                   → random seed hex (Web Crypto)
  */
 
 // ---------------------------------------------------------------------------
@@ -78,8 +78,8 @@ var crc32 = (() => {
     };
     this.processString = function (str) {
       str = crc32.Utf8Encode(str);
-      for (var i = 0; i < str.length; i++) {
-        var byte_index = ((str.charCodeAt(i) ^ this.rem_) >>> 0) & 0xff;
+      for (let i = 0; i < str.length; i++) {
+        const byte_index = ((str.charCodeAt(i) ^ this.rem_) >>> 0) & 0xff;
         this.rem_ = ((this.rem_ >>> 8) ^ crc32.table[byte_index]) >>> 0;
       }
     };
@@ -112,7 +112,7 @@ function mn_find_word_index(word, wordset) {
 
 function mn_get_checksum_index(words, prefix_len) {
   var trimmed_words = "";
-  for (var i = 0; i < words.length; i++) {
+  for (let i = 0; i < words.length; i++) {
     trimmed_words += words[i].slice(0, prefix_len);
   }
   var checksum = crc32.run(trimmed_words);
@@ -138,17 +138,17 @@ function mn_encode(str, wordset_name) {
   var wordset = mn_words[wordset_name];
   var out = [];
   var n = wordset.words.length;
-  for (var j = 0; j < str.length; j += 8) {
+  for (let j = 0; j < str.length; j += 8) {
     str =
       str.slice(0, j) +
       mn_swap_endian_4byte(str.slice(j, j + 8)) +
       str.slice(j + 8);
   }
-  for (var i = 0; i < str.length; i += 8) {
-    var x = parseInt(str.substr(i, 8), 16);
-    var w1 = x % n;
-    var w2 = (Math.floor(x / n) + w1) % n;
-    var w3 = (Math.floor(Math.floor(x / n) / n) + w2) % n;
+  for (let i = 0; i < str.length; i += 8) {
+    const x = parseInt(str.substr(i, 8), 16);
+    const w1 = x % n;
+    const w2 = (Math.floor(x / n) + w1) % n;
+    const w3 = (Math.floor(Math.floor(x / n) / n) + w2) % n;
     out = out.concat([wordset.words[w1], wordset.words[w2], wordset.words[w3]]);
   }
   if (wordset.prefix_len > 0) {
@@ -196,8 +196,8 @@ function mn_decode(str, wordset_name) {
     checksum_word = wlist.pop();
   }
   // Decode mnemonic
-  for (var i = 0; i < wlist.length; i += 3) {
-    var w1, w2, w3;
+  for (let i = 0; i < wlist.length; i += 3) {
+    let w1, w2, w3;
     if (wordset.prefix_len === 0) {
       w1 = wordset.words.indexOf(wlist[i]);
       w2 = wordset.words.indexOf(wlist[i + 1]);
@@ -210,15 +210,15 @@ function mn_decode(str, wordset_name) {
     if (w1 === -1 || w2 === -1 || w3 === -1) {
       throw "invalid word in mnemonic";
     }
-    var x = w1 + n * ((n - w1 + w2) % n) + n * n * ((n - w2 + w3) % n);
+    const x = w1 + n * ((n - w1 + w2) % n) + n * n * ((n - w2 + w3) % n);
     if (x % n !== w1)
       throw "Something went wrong when decoding your private key, please try again";
     out += mn_swap_endian_4byte(`0000000${x.toString(16)}`.slice(-8));
   }
   // Verify checksum
   if (wordset.prefix_len > 0) {
-    var index = mn_get_checksum_index(wlist, wordset.prefix_len);
-    var expected_checksum_word = wlist[index];
+    const index = mn_get_checksum_index(wlist, wordset.prefix_len);
+    const expected_checksum_word = wlist[index];
     if (
       expected_checksum_word.slice(0, wordset.prefix_len) !==
       checksum_word.slice(0, wordset.prefix_len)
@@ -232,8 +232,9 @@ function mn_decode(str, wordset_name) {
 /**
  * Generates a cryptographically random seed as a lowercase hex string.
  *
- * Uses `window.crypto.getRandomValues` — browser-only.  Retries up to
- * 5 times before throwing if the CSPRNG returns all-zero output.
+ * Uses `globalThis.crypto.getRandomValues` (Web Crypto) — works in browsers,
+ * Node 20+, and Web Workers alike.  Retries up to 5 times before throwing if
+ * the CSPRNG returns all-zero output.
  *
  * The returned value is raw entropy and is NOT automatically reduced
  * modulo the Ed25519 group order.  Pass it through `crypto.sc_reduce32`
@@ -242,30 +243,27 @@ function mn_decode(str, wordset_name) {
  * @param {number} bits - Number of random bits to generate.  Must be a
  *   positive multiple of 32; typically `256` for a 32-byte seed.
  * @returns {string} Lowercase hex string of length `bits / 4`.
- * @throws {string} If `bits` is not a multiple of 32, or if the browser
+ * @throws {string} If `bits` is not a multiple of 32, or if the environment
  *   does not support the Web Crypto API, or if random generation fails.
  */
 function mn_random(bits) {
   if (bits % 32 !== 0)
     throw `Something weird went wrong: Invalid number of bits - ${bits}`;
   var array = new Uint32Array(bits / 32);
-  if (!window.crypto)
-    window.alert(
-      "Unfortunately this program only runs on browsers that support the JavaScript Crypto API",
-    );
-  if (!window.crypto)
-    throw "Unfortunately Conceal Network only runs on browsers that support the JavaScript Crypto API";
+  var cryptoApi = globalThis.crypto;
+  if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function")
+    throw "Unfortunately Conceal Network only runs in environments that support the Web Crypto API";
   var i = 0;
 
   function arr_is_zero() {
-    for (var j = 0; j < bits / 32; ++j) {
+    for (let j = 0; j < bits / 32; ++j) {
       if (array[j] !== 0) return false;
     }
     return true;
   }
 
   do {
-    window.crypto.getRandomValues(array);
+    cryptoApi.getRandomValues(array);
     ++i;
   } while (i < 5 && arr_is_zero());
   if (arr_is_zero()) {
@@ -273,7 +271,7 @@ function mn_random(bits) {
   }
   // Convert to hex
   var out = "";
-  for (var j = 0; j < bits / 32; ++j) {
+  for (let j = 0; j < bits / 32; ++j) {
     out += `0000000${array[j].toString(16)}`.slice(-8);
   }
   return out;

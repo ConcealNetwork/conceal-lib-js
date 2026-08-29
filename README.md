@@ -71,13 +71,13 @@ const result = concealjs.crypto.derive_secret_key(derivation, out_index, sec);
 |---|---|---|---|
 | `mn_encode(str, wordset_name?)` | `str`: 64-char hex seed; `wordset_name`: `'english'` (default) / `'electrum'` / `'japanese'` | 25-word mnemonic string | Throws on invalid input |
 | `mn_decode(str, wordset_name?)` | `str`: space-separated mnemonic (25 words for English); `wordset_name`: same options | 64-char hex seed string | Verifies checksum word; throws on mismatch |
-| `mn_random(bits)` | `bits`: multiple of 32 — typically `256` | hex string of length `bits/4` | Browser only — uses `window.crypto.getRandomValues` |
+| `mn_random(bits)` | `bits`: multiple of 32 — typically `256` | hex string of length `bits/4` | Web Crypto via `globalThis.crypto.getRandomValues` (browsers, Node 20+, Workers) |
 
 ---
 
 ### Namespace `random` — plain JavaScript (`src/js/random.js`)
 
-> `rand*` wrappers use `mnemonic.mn_random` (browser Web Crypto).
+> `rand*` wrappers use `mnemonic.mn_random` (Web Crypto).
 > `random_scalar` also calls WASM `sc_reduce32`.
 
 | Function | Parameters | Returns | Notes |
@@ -360,7 +360,7 @@ Rust unit tests verify **generate → check** round-trips against the same C `cr
 |---|---|---|---|
 | `mn_encode` | `mnemonic` | **plain JS** | String-heavy; JS JIT ~2.8× faster than WASM boundary |
 | `mn_decode` | `mnemonic` | **plain JS** | Same as above |
-| `mn_random` | `mnemonic` | **plain JS** | Thin wrapper over `window.crypto` |
+| `mn_random` | `mnemonic` | **plain JS** | Thin wrapper over `globalThis.crypto` (Web Crypto) |
 | `rand32` / `rand16` / `rand8` | `random` | **plain JS** | Fixed-size wrappers over `mn_random` |
 | `random_scalar` | `random` | **mixed** | `mn_random` + WASM `sc_reduce32` |
 | `random_keypair` / `underive_public_key` | `cn` | **mixed** | `random` + `cnutils` + `crypto` WASM |
