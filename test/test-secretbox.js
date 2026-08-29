@@ -11,7 +11,7 @@ function walletPasswordKey(password) {
     password = password.slice(0, 32);
   }
   if (password.length < 32) {
-    password = ("00000000000000000000000000000000" + password).slice(-32);
+    password = `00000000000000000000000000000000${password}`.slice(-32);
   }
   let key = new TextEncoder().encode(password);
   if (key.length > 32) {
@@ -71,7 +71,7 @@ export async function runSecretboxTests(log) {
     const wrongKey = new Uint8Array(32);
     const result = secretbox.open(box, nonce, wrongKey);
     log(
-      "wrong key returns null: " + (result === null ? "PASS" : "FAIL"),
+      `wrong key returns null: ${result === null ? "PASS" : "FAIL"}`,
       result === null,
     );
   } catch (e) {
@@ -85,7 +85,7 @@ export async function runSecretboxTests(log) {
     tampered[0] ^= 0xff;
     const result = secretbox.open(tampered, nonce, key);
     log(
-      "tampered box returns null: " + (result === null ? "PASS" : "FAIL"),
+      `tampered box returns null: ${result === null ? "PASS" : "FAIL"}`,
       result === null,
     );
   } catch (e) {
