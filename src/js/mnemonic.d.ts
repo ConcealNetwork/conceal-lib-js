@@ -1,18 +1,15 @@
 /**
- * Decodes a mnemonic phrase back into a 64-char hex private spend key.
+ * Mnemonic encoding/decoding for Conceal Network.
  *
- * Validates the checksum word (for wordsets with `prefix_len > 0`) and
- * throws a descriptive error if the phrase is malformed or unverifiable.
- * Only the first `prefix_len` characters of each word are significant;
- * full words are accepted and compared by prefix.
+ * Extracted from crypto_utils.js (paperwallet reference) and rewritten as a
+ * clean ES module.  Plain JS is ~2.8× faster than Rust WASM for this
+ * string-heavy operation (WASM boundary overhead dominates computation time).
  *
- * @param {string} str - Space-separated mnemonic phrase (25 words for English).
- * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
- * @returns {string} 64-character lowercase hex string (32-byte private key).
- * @throws {string} If too few words are given, a word is unrecognised,
- *   or the checksum word does not match.
+ * Public API:
+ *   mn_encode(seed_hex, wordset_name?) → mnemonic string
+ *   mn_decode(mnemonic, wordset_name?) → seed hex string
+ *   mn_random(bits)                   → random seed hex (Web Crypto)
  */
-export function mn_decode(str: string, wordset_name?: "english" | "spanish" | "portuguese" | "japanese" | "electrum"): string;
 /**
  * Encodes a 64-char hex private spend key into a mnemonic phrase.
  *
@@ -26,7 +23,22 @@ export function mn_decode(str: string, wordset_name?: "english" | "spanish" | "p
  * @returns {string} Space-separated mnemonic phrase.
  * @throws {string} If the wordset is unknown or the input length is invalid.
  */
-export function mn_encode(str: string, wordset_name?: "english" | "spanish" | "portuguese" | "japanese" | "electrum"): string;
+declare function mn_encode(str: string, wordset_name?: 'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'): string;
+/**
+ * Decodes a mnemonic phrase back into a 64-char hex private spend key.
+ *
+ * Validates the checksum word (for wordsets with `prefix_len > 0`) and
+ * throws a descriptive error if the phrase is malformed or unverifiable.
+ * Only the first `prefix_len` characters of each word are significant;
+ * full words are accepted and compared by prefix.
+ *
+ * @param {string} str - Space-separated mnemonic phrase (25 words for English).
+ * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
+ * @returns {string} 64-character lowercase hex string (32-byte private key).
+ * @throws {string} If too few words are given, a word is unrecognised,
+ *   or the checksum word does not match.
+ */
+declare function mn_decode(str: string, wordset_name?: 'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'): string;
 /**
  * Generates a cryptographically random seed as a lowercase hex string.
  *
@@ -44,4 +56,5 @@ export function mn_encode(str: string, wordset_name?: "english" | "spanish" | "p
  * @throws {string} If `bits` is not a multiple of 32, or if the environment
  *   does not support the Web Crypto API, or if random generation fails.
  */
-export function mn_random(bits: number): string;
+declare function mn_random(bits: number): string;
+export { mn_decode, mn_encode, mn_random };

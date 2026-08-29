@@ -1,2 +1,2 @@
 /** @type {typeof BigInteger} */
-export const JSBigInt: typeof BigInteger;
+export declare const JSBigInt: typeof BigInteger;
