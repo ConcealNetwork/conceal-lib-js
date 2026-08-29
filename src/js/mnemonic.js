@@ -8,7 +8,7 @@
  * Public API:
  *   mn_encode(seed_hex, wordset_name?) → mnemonic string
  *   mn_decode(mnemonic, wordset_name?) → seed hex string
- *   mn_random(bits)                   → random seed hex (browser only)
+ *   mn_random(bits)                   → random seed hex (Web Crypto)
  */
 
 // ---------------------------------------------------------------------------

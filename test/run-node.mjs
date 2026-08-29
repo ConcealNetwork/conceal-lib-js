@@ -16,7 +16,7 @@ import { register } from "node:module";
 
 await register(new URL("./node/hooks.mjs", import.meta.url), import.meta.url);
 
-// Minimal browser-ish globals for the JS tiers: mn_random reads window.crypto
+// Minimal browser-ish globals for the JS tiers: mn_random reads globalThis.crypto
 // (Node provides webcrypto as globalThis.crypto) and window.alerts on entropy
 // failure. Scoped to this runner only — the library itself stays unchanged.
 if (typeof globalThis.window === "undefined") {
