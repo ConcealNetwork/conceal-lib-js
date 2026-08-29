@@ -85,7 +85,7 @@ pub fn private_key_to_mnemonic(key: &[u8], wl: &WordList) -> Result<String, Mnem
     let n = wl.len();
     let mut words: Vec<&str> = Vec::with_capacity(25);
 
-    for chunk in key.chunks_exact(4) {
+    for chunk in key.as_chunks::<4>().0 {
         let val = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
 
         let w1 = val % n;
@@ -142,7 +142,7 @@ pub fn mnemonic_to_private_key(mnemonic: &str, wl: &WordList) -> Result<Vec<u8>,
     let mut key = Vec::with_capacity(32);
     let n = wl.len();
 
-    for triple in data_words.chunks_exact(3) {
+    for triple in data_words.as_chunks::<3>().0 {
         let w1 = find_word_index(triple[0], wl).unwrap();
         let w2 = find_word_index(triple[1], wl).unwrap();
         let w3 = find_word_index(triple[2], wl).unwrap();
