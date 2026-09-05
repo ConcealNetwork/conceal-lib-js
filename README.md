@@ -6,7 +6,7 @@
 (and TweetNaCl CN extensions) where that wins on latency.
 
 **License:** [PolyForm Noncommercial 1.0.0](LICENSE) — use, modify, and redistribute for
-**noncommercial** purposes. Commercial use requires permission from the copyright holder.
+**noncommercial** purposes. See [Licensing](#licensing) for commercial or other exceptions.
 
 ---
 
@@ -501,5 +501,15 @@ concealjs/
     ├── test-address.js
     └── wasm/               # web-target WASM for test page (git-ignored)
 ```
+
+## Licensing
+
+`conceal-lib-js` is distributed under the [PolyForm Noncommercial 1.0.0](LICENSE)
+license included in this repository.
+
+For integrations that require rights beyond that license, open a
+[license-exception request](https://github.com/ConcealNetwork/conceal-lib-js/issues/new?template=license-exception-request.md).
+Submitting a request does not grant any additional rights; any exception must
+be explicitly approved in writing.
 
 
