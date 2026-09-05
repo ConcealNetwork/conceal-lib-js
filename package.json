@@ -64,7 +64,7 @@
     "release": "npm run build && npm run types && npm pack"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.15",
+    "@biomejs/biome": "2.5.10",
     "typescript": "7.0.2"
   },
   "keywords": [
