@@ -96,13 +96,19 @@ export declare function ge_scalarmult_base(sec: string): string;
  */
 export declare function derivation_to_scalar(derivation: string, output_index: number): string;
 /**
- * @param {number | string} i
- * @returns {string}
+ * Encode an unsigned CryptoNote varint as lowercase hex.
+ *
+ * @param {number | string} i - Non-negative integer (or decimal string).
+ * @returns {string} Even-length lowercase hex.
+ * @throws {Error} If `i` is negative.
  */
 export declare function encode_varint(i: number | string): string;
 /**
- * @param {number | string} i
- * @returns {string}
+ * Encode an unsigned CryptoNote term varint as lowercase hex.
+ *
+ * @param {number | string} i - Non-negative integer (or decimal string).
+ * @returns {string} Even-length lowercase hex.
+ * @throws {Error} If `i` is negative.
  */
 export declare function encode_varint_term(i: number | string): string;
 /**

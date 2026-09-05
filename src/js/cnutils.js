@@ -245,10 +245,25 @@ export function derivation_to_scalar(derivation, output_index) {
 
 /**
  * @param {number | string} i
- * @returns {string}
+ * @returns {import("./tiers/biginteger.js").JSBigInt}
+ */
+function requireNonNegativeVarint(i) {
+  const value = new JSBigInt(i);
+  if (value.isNegative()) {
+    throw new Error("varint cannot be negative");
+  }
+  return value;
+}
+
+/**
+ * Encode an unsigned CryptoNote varint as lowercase hex.
+ *
+ * @param {number | string} i - Non-negative integer (or decimal string).
+ * @returns {string} Even-length lowercase hex.
+ * @throws {Error} If `i` is negative.
  */
 export function encode_varint(i) {
-  let j = new JSBigInt(i);
+  let j = requireNonNegativeVarint(i);
   let out = "";
   while (j.compare(0x80) >= 0) {
     out += `0${((j.lowVal() & 0x7f) | 0x80).toString(16)}`.slice(-2);
@@ -259,11 +274,14 @@ export function encode_varint(i) {
 }
 
 /**
- * @param {number | string} i
- * @returns {string}
+ * Encode an unsigned CryptoNote term varint as lowercase hex.
+ *
+ * @param {number | string} i - Non-negative integer (or decimal string).
+ * @returns {string} Even-length lowercase hex.
+ * @throws {Error} If `i` is negative.
  */
 export function encode_varint_term(i) {
-  let value = new JSBigInt(i);
+  let value = requireNonNegativeVarint(i);
   let out = "";
   do {
     const byteValue = value.lowVal() & 0xff;

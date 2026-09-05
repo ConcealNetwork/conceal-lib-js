@@ -135,7 +135,7 @@ Exported constant: `STRUCT_SIZES`.
 | `hextobin` / `bintohex` | hex ↔ bytes | `Uint8Array` / hex | |
 | `swapEndian` / `swapEndianC` | string | string | Byte or char order |
 | `d2h` / `d2s` / `h2d` / `d2b` | integer / hex | hex or number | `JSBigInt` internally; `d2s` = endian-swapped scalar |
-| `encode_varint` / `encode_varint_term` | `number \| string \| JSBigInt` | hex | CryptoNote varint |
+| `encode_varint` / `encode_varint_term` | `number \| string \| JSBigInt` | hex | Unsigned CryptoNote varint; throws if negative |
 | `cn_fast_hash` | hex string | 64-char hex | `keccak_256(hextobin(input))` via `tiers/sha3.js` |
 | `derivation_to_scalar` | 64-char derivation + index | 64-char scalar | WASM `hash_to_scalar` |
 | `valid_hex` / `hex_xor` / `trimRight` / `padLeft` | — | — | Utilities |

@@ -117,6 +117,30 @@ export async function runCnutilsTests(log) {
   }
 
   try {
+    const cases = [-5, "-5", -1, "-1"];
+    const ok = cases.every((value) => {
+      let encodeThrew = false;
+      let termThrew = false;
+      try {
+        cnutils.encode_varint(value);
+      } catch (e) {
+        encodeThrew =
+          e instanceof Error && e.message === "varint cannot be negative";
+      }
+      try {
+        cnutils.encode_varint_term(value);
+      } catch (e) {
+        termThrew =
+          e instanceof Error && e.message === "varint cannot be negative";
+      }
+      return encodeThrew && termThrew;
+    });
+    log(`encode_varint rejects negatives: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`encode_varint negative check failed: ${e}`, false);
+  }
+
+  try {
     const scalar8 = cnutils.d2s(8);
     const ok =
       typeof scalar8 === "string" &&
