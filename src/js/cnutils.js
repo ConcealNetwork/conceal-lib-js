@@ -31,10 +31,20 @@ export const STRUCT_SIZES = Object.freeze({
 });
 
 /**
- * @param {string} hex
+ * Decode an even-length hex string to bytes.
+ *
+ * Input is validated strictly: every byte pair must match `[0-9a-fA-F]{2}`,
+ * so `0x`-prefixed or otherwise malformed input throws instead of silently
+ * decoding to zero bytes.
+ *
+ * @param {string} hex - Even-length hex string (`""` decodes to an empty array).
  * @returns {Uint8Array}
+ * @throws {Error} If `hex` is not a string, contains non-hex characters, or has odd length.
  */
 export function hextobin(hex) {
+  if (typeof hex !== "string" || !/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hex string");
+  }
   if (hex.length % 2 !== 0) throw new Error("Hex string has invalid length!");
   const res = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length / 2; ++i) {

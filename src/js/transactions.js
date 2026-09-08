@@ -131,6 +131,7 @@ export function parseTxExtra(oExtra) {
  *
  * @param {string} extraHex - Transaction extra field as hex.
  * @returns {string | null} 64-char hex tx public key, or `null` if missing.
+ * @throws {Error} If `extraHex` is not a valid even-length hex string.
  */
 export function extractTxPublicKey(extraHex) {
   const uint8Array = hextobin(extraHex);
@@ -198,7 +199,12 @@ function buildBatchReceivePayload(txs) {
   const txOffsets = [0];
 
   for (const tx of txs) {
-    const pub = extractTxPublicKey(tx.extraHex);
+    let pub = null;
+    try {
+      pub = extractTxPublicKey(tx.extraHex);
+    } catch {
+      pub = null;
+    }
     txPubHex.push(pub ?? "");
     const checks = buildReceiveOutputChecks(tx.vouts);
     indices.push(...checks.indices);
@@ -295,7 +301,12 @@ export function scanSpendInputs(vins, ctx) {
  * @returns {boolean}
  */
 export function ownsTx(tx, ctx) {
-  const txPub = extractTxPublicKey(tx.extraHex);
+  let txPub = null;
+  try {
+    txPub = extractTxPublicKey(tx.extraHex);
+  } catch {
+    txPub = null;
+  }
   if (txPub) {
     try {
       if (

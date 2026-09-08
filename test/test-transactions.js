@@ -100,6 +100,32 @@ export async function runTransactionsTests(log) {
     log(`extractTxPublicKey failed: ${e}`, false);
   }
 
+  // ── extractTxPublicKey / ownsTx reject malformed extra hex ────────────────
+  try {
+    let extractThrew = false;
+    try {
+      extractTxPublicKey("zzzz");
+    } catch (_e) {
+      extractThrew = true;
+    }
+    const ownsTxCope = !ownsTx(
+      { extraHex: "zzzz", vouts: [{ type: "02", key: derivedKey0 }] },
+      {
+        viewSecretHex: walletKeys.sec,
+        spendPublicHex: walletKeys.pub,
+      },
+    );
+    const ok = extractThrew && ownsTxCope;
+    log(
+      `malformed extra hex throws / ownsTx treats as unowned: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`malformed extra hex check failed: ${e}`, false);
+  }
+
   // ── scanReceiveOutputs type 02 ───────────────────────────────────────────
   try {
     const ok = scanReceiveOutputs(txKeys.pub, walletKeys.sec, walletKeys.pub, [

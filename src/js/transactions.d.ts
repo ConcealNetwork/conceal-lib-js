@@ -140,6 +140,7 @@ export declare function parseTxExtra(oExtra: number[] | Uint8Array): TxExtra[];
  *
  * @param {string} extraHex - Transaction extra field as hex.
  * @returns {string | null} 64-char hex tx public key, or `null` if missing.
+ * @throws {Error} If `extraHex` is not a valid even-length hex string.
  */
 export declare function extractTxPublicKey(extraHex: string): string | null;
 /**

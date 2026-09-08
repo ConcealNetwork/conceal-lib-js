@@ -85,6 +85,42 @@ export async function runCnutilsTests(log) {
   }
 
   try {
+    const upper = cnutils.hextobin("DEADBEEF");
+    const ok = cnutils.bintohex(upper) === "deadbeef";
+    log(`hextobin accepts uppercase hex: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`hextobin uppercase check failed: ${e}`, false);
+  }
+
+  try {
+    const invalidCases = [
+      "zz",
+      "2x",
+      "deadbeef2",
+      "0xdeadbeef",
+      "0XDEADBEEF",
+      "de ad be ef",
+      123,
+      null,
+    ];
+    const ok = invalidCases.every((value) => {
+      try {
+        cnutils.hextobin(value);
+        return false;
+      } catch (_e) {
+        return true;
+      }
+    });
+    const emptyOk = cnutils.hextobin("").length === 0;
+    log(
+      `hextobin rejects invalid hex (${ok && emptyOk ? "PASS" : "FAIL"})`,
+      ok && emptyOk,
+    );
+  } catch (e) {
+    log(`hextobin invalid-hex check failed: ${e}`, false);
+  }
+
+  try {
     const ok = cnutils.swapEndian("aabbcc") === "ccbbaa";
     log(`swapEndian: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
