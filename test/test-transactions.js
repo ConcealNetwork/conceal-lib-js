@@ -100,14 +100,12 @@ export async function runTransactionsTests(log) {
     log(`extractTxPublicKey failed: ${e}`, false);
   }
 
-  // ── extractTxPublicKey / ownsTx reject malformed extra hex ────────────────
+  // ── extractTxPublicKey is total on malformed extra hex ───────────────────
   try {
-    let extractThrew = false;
-    try {
-      extractTxPublicKey("zzzz");
-    } catch (_e) {
-      extractThrew = true;
-    }
+    const extractNull =
+      extractTxPublicKey("zzzz") === null &&
+      extractTxPublicKey("abc") === null &&
+      extractTxPublicKey("") === null;
     const ownsTxCope = !ownsTx(
       { extraHex: "zzzz", vouts: [{ type: "02", key: derivedKey0 }] },
       {
@@ -115,15 +113,54 @@ export async function runTransactionsTests(log) {
         spendPublicHex: walletKeys.pub,
       },
     );
-    const ok = extractThrew && ownsTxCope;
+    const ok = extractNull && ownsTxCope;
     log(
-      `malformed extra hex throws / ownsTx treats as unowned: ${
+      `malformed extra hex → null / ownsTx treats as unowned: ${
         ok ? "PASS" : "FAIL"
       }`,
       ok,
     );
   } catch (e) {
     log(`malformed extra hex check failed: ${e}`, false);
+  }
+
+  // ── ownsTxBatch: malformed-extra tx stays unowned, valid tx still owned ───
+  try {
+    const txs = [
+      {
+        extraHex,
+        vouts: [{ type: "02", key: derivedKey0 }],
+      },
+      {
+        extraHex: "zzzz",
+        vouts: [{ type: "02", key: derivedKey0 }],
+      },
+      {
+        extraHex,
+        vouts: [{ type: "02", key: "ff".repeat(32) }],
+      },
+    ];
+    const ctx = {
+      viewSecretHex: walletKeys.sec,
+      spendPublicHex: walletKeys.pub,
+    };
+    const batch = ownsTxBatch(txs, ctx);
+    const parity = txs.every((tx, i) => ownsTx(tx, ctx) === batch[i]);
+    const ok =
+      Array.isArray(batch) &&
+      batch.length === 3 &&
+      batch[0] === true &&
+      batch[1] === false &&
+      batch[2] === false &&
+      parity;
+    log(
+      `ownsTxBatch malformed-extra tx unowned, owned tx preserved: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`ownsTxBatch malformed-extra check failed: ${e}`, false);
   }
 
   // ── scanReceiveOutputs type 02 ───────────────────────────────────────────

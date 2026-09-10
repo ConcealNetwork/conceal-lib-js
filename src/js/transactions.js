@@ -130,11 +130,18 @@ export function parseTxExtra(oExtra) {
  * Extract the transaction public key from `extra` hex (first `TX_EXTRA_TAG_PUBKEY`).
  *
  * @param {string} extraHex - Transaction extra field as hex.
- * @returns {string | null} 64-char hex tx public key, or `null` if missing.
- * @throws {Error} If `extraHex` is not a valid even-length hex string.
+ * @returns {string | null} 64-char hex tx public key, `null` if missing or
+ *   if `extraHex` is not a valid even-length hex string.
  */
 export function extractTxPublicKey(extraHex) {
-  const uint8Array = hextobin(extraHex);
+  let uint8Array;
+  try {
+    uint8Array = hextobin(extraHex);
+  } catch {
+    // Daemon-controlled input can be malformed; treat it as "no tx public key"
+    // instead of throwing so scanning loops keep degrading gracefully.
+    return null;
+  }
   const extras = parseTxExtra(uint8Array);
 
   for (const extra of extras) {
