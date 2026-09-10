@@ -12,15 +12,11 @@ export declare const STRUCT_SIZES: Readonly<{
     EC_POINT: number;
 }>;
 /**
- * Decode an even-length hex string to bytes.
+ * Decode a validated hex string to bytes.
  *
- * Input is validated strictly: every byte pair must match `[0-9a-fA-F]{2}`,
- * so `0x`-prefixed or otherwise malformed input throws instead of silently
- * decoding to zero bytes.
- *
- * @param {string} hex - Even-length hex string (`""` decodes to an empty array).
+ * @param {string} hex - Validated hex string (`""` decodes to an empty array).
  * @returns {Uint8Array}
- * @throws {Error} If `hex` is not a string, contains non-hex characters, or has odd length.
+ * @throws {Error} If `hex` is not a string or contains non-hex characters.
  */
 export declare function hextobin(hex: string): Uint8Array;
 /**
