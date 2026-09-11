@@ -128,14 +128,18 @@ function mn_get_checksum_index(words, prefix_len) {
  * The result is a space-separated string of 25 words for English/Japanese
  * or 24 words for Electrum.
  *
- * @param {string} str - 64-character lowercase hex string (32-byte private key).
+ * @param {string} str - 64-character hex string (32-byte private key).
  * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} Space-separated mnemonic phrase.
- * @throws {string} If the wordset is unknown or the input length is invalid.
+ * @throws {string} If the wordset is unknown, or `str` is not a 64-char hex string.
  */
 function mn_encode(str, wordset_name) {
   wordset_name = wordset_name || mn_default_wordset;
   var wordset = mn_words[wordset_name];
+  if (!wordset) throw `unknown language: ${wordset_name}`;
+  if (typeof str !== "string" || !/^[0-9a-fA-F]{64}$/.test(str)) {
+    throw "Invalid hex seed: expected a 64-character hex string";
+  }
   var out = [];
   var n = wordset.words.length;
   for (let j = 0; j < str.length; j += 8) {
