@@ -18,10 +18,10 @@
  * The result is a space-separated string of 25 words for English/Japanese
  * or 24 words for Electrum.
  *
- * @param {string} str - 64-character lowercase hex string (32-byte private key).
+ * @param {string} str - 64-character hex string (32-byte private key).
  * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} Space-separated mnemonic phrase.
- * @throws {string} If the wordset is unknown or the input length is invalid.
+ * @throws {string} If the wordset is unknown, or `str` is not a 64-char hex string.
  */
 declare function mn_encode(str: string, wordset_name?: 'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'): string;
 /**

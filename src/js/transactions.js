@@ -130,10 +130,16 @@ export function parseTxExtra(oExtra) {
  * Extract the transaction public key from `extra` hex (first `TX_EXTRA_TAG_PUBKEY`).
  *
  * @param {string} extraHex - Transaction extra field as hex.
- * @returns {string | null} 64-char hex tx public key, or `null` if missing.
+ * @returns {string | null} 64-char hex tx public key, `null` if missing or invalid
  */
 export function extractTxPublicKey(extraHex) {
-  const uint8Array = hextobin(extraHex);
+  let uint8Array;
+  try {
+    uint8Array = hextobin(extraHex);
+  } catch {
+    // Daemon-controlled input can be malformed; treat it as "no tx public key", scan loop degrade gracefully.
+    return null;
+  }
   const extras = parseTxExtra(uint8Array);
 
   for (const extra of extras) {
@@ -198,7 +204,12 @@ function buildBatchReceivePayload(txs) {
   const txOffsets = [0];
 
   for (const tx of txs) {
-    const pub = extractTxPublicKey(tx.extraHex);
+    let pub = null;
+    try {
+      pub = extractTxPublicKey(tx.extraHex);
+    } catch {
+      pub = null;
+    }
     txPubHex.push(pub ?? "");
     const checks = buildReceiveOutputChecks(tx.vouts);
     indices.push(...checks.indices);
@@ -295,7 +306,12 @@ export function scanSpendInputs(vins, ctx) {
  * @returns {boolean}
  */
 export function ownsTx(tx, ctx) {
-  const txPub = extractTxPublicKey(tx.extraHex);
+  let txPub = null;
+  try {
+    txPub = extractTxPublicKey(tx.extraHex);
+  } catch {
+    txPub = null;
+  }
   if (txPub) {
     try {
       if (
@@ -418,6 +434,18 @@ export function ownsTxBatch(txs, ctx) {
  */
 
 /**
+ * @param {unknown} hex
+ * @param {number} length
+ * @param {string} label
+ * @returns {void}
+ */
+function assertHexLen(hex, length, label) {
+  if (typeof hex !== "string" || hex.length !== length || !valid_hex(hex)) {
+    throw new Error(label);
+  }
+}
+
+/**
  * Serialize a CryptoNote transaction to broadcast-ready hex (non-RingCT / plain
  * ring-signature path only). Ported byte-for-byte from `CnTransactions.serialize_tx`
  * in conceal-web-wallet's `Cn.ts`.
@@ -443,9 +471,11 @@ export function serializeTransaction(tx, headerOnly = false) {
         for (let j = 0; j < keyOffsets.length; j++) {
           buf += encode_varint(keyOffsets[j]);
         }
-        if (typeof vin.k_image !== "string" || vin.k_image.length !== 64) {
-          throw new Error("input_to_key requires a 64-char k_image hex");
-        }
+        assertHexLen(
+          vin.k_image,
+          64,
+          "input_to_key requires a 64-char k_image hex",
+        );
         buf += vin.k_image;
         break;
       }
@@ -469,12 +499,11 @@ export function serializeTransaction(tx, headerOnly = false) {
     switch (vout.target.type) {
       case "txout_to_key": {
         buf += "02";
-        if (
-          typeof vout.target.data.key !== "string" ||
-          vout.target.data.key.length !== 64
-        ) {
-          throw new Error("txout_to_key requires a 64-char key hex");
-        }
+        assertHexLen(
+          vout.target.data.key,
+          64,
+          "txout_to_key requires a 64-char key hex",
+        );
         buf += vout.target.data.key;
         break;
       }
@@ -483,9 +512,11 @@ export function serializeTransaction(tx, headerOnly = false) {
         const keys = vout.target.data.keys || [];
         buf += encode_varint(keys.length); // varint for number of keys, only one for deposit
         for (let j = 0; j < keys.length; j++) {
-          if (typeof keys[j] !== "string" || keys[j].length !== 64) {
-            throw new Error("txout_to_deposit_key requires 64-char key hex");
-          }
+          assertHexLen(
+            keys[j],
+            64,
+            "txout_to_deposit_key requires 64-char key hex",
+          );
           buf += keys[j];
         }
         buf += encode_varint(1); // requiredSignatureCount is always 1 for deposits
@@ -533,6 +564,11 @@ export function serializeTransaction(tx, headerOnly = false) {
         );
       }
       for (let j = 0; j < tx.signatures[i].length; j++) {
+        assertHexLen(
+          tx.signatures[i][j],
+          128,
+          `signature[${i}][${j}] must be 128-char hex`,
+        );
         buf += tx.signatures[i][j];
       }
     }

@@ -85,6 +85,42 @@ export async function runCnutilsTests(log) {
   }
 
   try {
+    const upper = cnutils.hextobin("DEADBEEF");
+    const ok = cnutils.bintohex(upper) === "deadbeef";
+    log(`hextobin accepts uppercase hex: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`hextobin uppercase check failed: ${e}`, false);
+  }
+
+  try {
+    const invalidCases = [
+      "zz",
+      "2x",
+      "deadbeef2",
+      "0xdeadbeef",
+      "0XDEADBEEF",
+      "de ad be ef",
+      123,
+      null,
+    ];
+    const ok = invalidCases.every((value) => {
+      try {
+        cnutils.hextobin(value);
+        return false;
+      } catch (_e) {
+        return true;
+      }
+    });
+    const emptyOk = cnutils.hextobin("").length === 0;
+    log(
+      `hextobin rejects invalid hex (${ok && emptyOk ? "PASS" : "FAIL"})`,
+      ok && emptyOk,
+    );
+  } catch (e) {
+    log(`hextobin invalid-hex check failed: ${e}`, false);
+  }
+
+  try {
     const ok = cnutils.swapEndian("aabbcc") === "ccbbaa";
     log(`swapEndian: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
@@ -152,6 +188,35 @@ export async function runCnutilsTests(log) {
   }
 
   try {
+    const ok = cnutils.h2d("0100000000000000") === 1;
+    log(`h2d(0100…00) === 1: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`h2d happy path failed: ${e}`, false);
+  }
+
+  try {
+    const invalidCases = [
+      `2x${"0".repeat(14)}`,
+      "zz".repeat(8),
+      "abcd",
+      "0100000000000000ff", // longer than 16 — old code truncated silently
+      123,
+      null,
+    ];
+    const ok = invalidCases.every((value) => {
+      try {
+        cnutils.h2d(value);
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    log(`h2d rejects invalid hex: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`h2d invalid-hex check failed: ${e}`, false);
+  }
+
+  try {
     const digits = cnutils.decompose_amount_into_digits("12345");
     const ok =
       digits.length === 5 &&
@@ -169,8 +234,27 @@ export async function runCnutilsTests(log) {
     const keys = wasmCrypto.generate_keys(SEED);
     const ok = pubNacl === keys.pub;
     log(`sec_key_to_pub === generate_keys.pub: ${ok ? "PASS" : "FAIL"}`, ok);
+
+    const twice = cnutils.ge_neg(cnutils.ge_neg(pubNacl));
+    const roundTrip = twice === pubNacl;
+    log(`ge_neg(ge_neg(P)) === P: ${roundTrip ? "PASS" : "FAIL"}`, roundTrip);
   } catch (e) {
     log(`sec_key_to_pub failed: ${e}`, false);
+  }
+
+  try {
+    const invalidCases = ["z".repeat(64), "aa".repeat(31), 123, null];
+    const ok = invalidCases.every((value) => {
+      try {
+        cnutils.ge_neg(value);
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    log(`ge_neg rejects invalid hex: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`ge_neg invalid-hex check failed: ${e}`, false);
   }
 
   try {

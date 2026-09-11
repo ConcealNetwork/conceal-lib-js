@@ -134,12 +134,12 @@ Exported constant: `STRUCT_SIZES`.
 |---|---|---|---|
 | `hextobin` / `bintohex` | hex ↔ bytes | `Uint8Array` / hex | |
 | `swapEndian` / `swapEndianC` | string | string | Byte or char order |
-| `d2h` / `d2s` / `h2d` / `d2b` | integer / hex | hex or number | `JSBigInt` internally; `d2s` = endian-swapped scalar |
+| `d2h` / `d2s` / `h2d` / `d2b` | integer / hex | hex or number | `JSBigInt` internally; `d2s` = endian-swapped scalar; `h2d` requires exactly 16-char hex and throws otherwise |
 | `encode_varint` / `encode_varint_term` | `number \| string \| JSBigInt` | hex | Unsigned CryptoNote varint; throws if negative |
 | `cn_fast_hash` | hex string | 64-char hex | `keccak_256(hextobin(input))` via `tiers/sha3.js` |
 | `derivation_to_scalar` | 64-char derivation + index | 64-char scalar | WASM `hash_to_scalar` |
 | `valid_hex` / `hex_xor` / `trimRight` / `padLeft` | — | — | Utilities |
-| `sec_key_to_pub` / `ge_scalarmult*` / `ge_add` / `ge_sub` / `ge_neg` | 64-char hex | 64-char hex | `nacl.ll` |
+| `sec_key_to_pub` / `ge_scalarmult*` / `ge_add` / `ge_sub` / `ge_neg` | 64-char hex | 64-char hex | `nacl.ll`; `ge_neg` / `ge_sub` throw if not 64-char hex |
 | `ge_double_scalarmult_base_vartime` | `c`, `P`, `r` | 64-char hex | |
 | `ge_double_scalarmult_postcomp_vartime` | `r`, `P`, `c`, `I` | 64-char hex | Uses `crypto.hash_to_ec32` on `P` (32-byte point) |
 | `decompose_amount_into_digits` | amount | `JSBigInt[]` | |

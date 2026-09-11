@@ -31,10 +31,16 @@ export const STRUCT_SIZES = Object.freeze({
 });
 
 /**
- * @param {string} hex
+ * Decode a validated hex string to bytes.
+ *
+ * @param {string} hex - Validated hex string (`""` decodes to an empty array).
  * @returns {Uint8Array}
+ * @throws {Error} If `hex` is not a string, contains non-hex characters, or has odd length.
  */
 export function hextobin(hex) {
+  if (typeof hex !== "string" || !/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hex string");
+  }
   if (hex.length % 2 !== 0) throw new Error("Hex string has invalid length!");
   const res = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length / 2; ++i) {
@@ -117,10 +123,16 @@ export function d2s(integer) {
 }
 
 /**
- * @param {string} hex
- * @returns {number}
+ * Decode 8 little-endian bytes (16 hex chars) to a JS number.
+ *
+ * @param {string} hex - Exactly 16 hex characters (8 bytes, little-endian order).
+ * @returns {number} Unsigned integer value of those 8 bytes.
+ * @throws {Error} If `hex` is not a 16-character hex string.
  */
 export function h2d(hex) {
+  if (typeof hex !== "string" || hex.length !== 16 || !valid_hex(hex)) {
+    throw new Error("h2d expects a 16-character hex string");
+  }
   let vali = 0;
   for (let j = 7; j >= 0; j--) {
     vali = vali * 256 + Number.parseInt(hex.slice(j * 2, j * 2 + 2), 16);
@@ -173,11 +185,15 @@ export function ge_add(p1, p2) {
 }
 
 /**
- * @param {string} point
- * @returns {string}
+ * Negate an Ed25519 compressed point by flipping the sign bit in the high
+ * nibble of the last byte (`point[62]` ± 8).
+ *
+ * @param {string} point - 64-character compressed point hex.
+ * @returns {string} 64-character hex encoding of `-point`.
+ * @throws {Error} If `point` is not a 64-character hex string.
  */
 export function ge_neg(point) {
-  if (point.length !== 64) {
+  if (typeof point !== "string" || point.length !== 64 || !valid_hex(point)) {
     throw new Error("expected 64 char hex string");
   }
   return (
@@ -188,9 +204,12 @@ export function ge_neg(point) {
 }
 
 /**
- * @param {string} point1
- * @param {string} point2
- * @returns {string}
+ * Subtract two Ed25519 compressed points (`point1 - point2`).
+ *
+ * @param {string} point1 - 64-character compressed point hex.
+ * @param {string} point2 - 64-character compressed point hex.
+ * @returns {string} 64-character hex encoding of `point1 - point2`.
+ * @throws {Error} If either point fails `ge_add` / `ge_neg` validation.
  */
 export function ge_sub(point1, point2) {
   return ge_add(point1, ge_neg(point2));
