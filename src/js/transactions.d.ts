@@ -285,46 +285,6 @@ export type TxSerializeWithHash = {
     hash: string;
 };
 /**
- * @typedef {Object} TxSerializeVinTarget
- * @property {string} type - Input type (`"input_to_key"` or `"input_to_deposit_key"`).
- * @property {number | string} [amount] - Input amount (uint64; pass large values as strings).
- * @property {number[]} [key_offsets] - Relative ring offsets (`input_to_key`).
- * @property {string} [k_image] - 64-char hex key image (`input_to_key`).
- * @property {number | string} [outputIndex] - Deposit output index (`input_to_deposit_key`).
- * @property {number | string} [term] - Deposit term in blocks (`input_to_deposit_key`).
- * @property {number} [signatures] - Expected signature count for `input_to_deposit_key`.
- */
-/**
- * @typedef {Object} TxSerializeVoutTargetData
- * @property {string} [key] - 64-char hex output public key (`txout_to_key`).
- * @property {string[]} [keys] - 64-char hex output keys (`txout_to_deposit_key`).
- * @property {number | string} [term] - Deposit term in blocks (`txout_to_deposit_key`).
- */
-/**
- * @typedef {Object} TxSerializeVoutTarget
- * @property {string} type - Target type (`"txout_to_key"` or `"txout_to_deposit_key"`).
- * @property {TxSerializeVoutTargetData} data - Target payload.
- */
-/**
- * @typedef {Object} TxSerializeVout
- * @property {number | string} amount - Output amount (uint64; pass large values as strings).
- * @property {TxSerializeVoutTarget} target - Output target.
- */
-/**
- * @typedef {Object} TxToSerialize
- * @property {number | string} version - Transaction version (uint64).
- * @property {number | string} unlock_time - Unlock time / block height (uint64).
- * @property {TxSerializeVinTarget[]} vin - Transaction inputs.
- * @property {TxSerializeVout[]} vout - Transaction outputs.
- * @property {string} extra - `extra` field as an even-length hex string.
- * @property {string[][]} signatures - Per-input ring signatures (omitted when serializing header only).
- */
-/**
- * @typedef {Object} TxSerializeWithHash
- * @property {string} raw - Full serialized transaction hex (prefix + signatures).
- * @property {string} hash - `cn_fast_hash` of the full serialized transaction.
- */
-/**
  * Serialize a CryptoNote transaction to broadcast-ready hex (non-RingCT / plain
  * ring-signature path only). Ported byte-for-byte from `CnTransactions.serialize_tx`
  * in conceal-web-wallet's `Cn.ts`.

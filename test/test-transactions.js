@@ -420,22 +420,78 @@ export async function runTransactionsTests(log) {
     log(`serializeTransaction signatures failed: ${e}`, false);
   }
 
-  // ── valid_hex guard throws on bad extra ────────────────────────────────────
+  // ── valid_hex guard throws on bad extra / keys / signatures ────────────────
   try {
-    const badTx = { ...repTx, extra: "zzzz" };
-    let threw = false;
-    try {
-      serializeTransaction(badTx, true);
-    } catch {
-      threw = true;
-    }
+    const threw = (tx, headerOnly = true) => {
+      try {
+        serializeTransaction(tx, headerOnly);
+        return false;
+      } catch {
+        return true;
+      }
+    };
+    const badExtra = threw({ ...repTx, extra: "zzzz" });
+    const badKImage = threw({
+      ...repTx,
+      vin: [{ ...repTx.vin[0], k_image: "gg".repeat(32) }],
+    });
+    const shortKImage = threw({
+      ...repTx,
+      vin: [{ ...repTx.vin[0], k_image: "aa".repeat(31) }], // valid hex, wrong length
+    });
+    const badOutKey = threw({
+      ...repTx,
+      vout: [
+        {
+          amount: 1000,
+          target: { type: "txout_to_key", data: { key: "zz".repeat(32) } },
+        },
+      ],
+    });
+    const badDepositKey = threw({
+      version: 1,
+      unlock_time: 0,
+      vin: [
+        {
+          type: "input_to_deposit_key",
+          amount: 5,
+          outputIndex: 1,
+          term: 21900,
+        },
+      ],
+      vout: [
+        {
+          amount: 5,
+          target: {
+            type: "txout_to_deposit_key",
+            data: { keys: ["zz".repeat(32)], term: 21900 },
+          },
+        },
+      ],
+      extra: "00",
+      signatures: [["cc".repeat(64)]],
+    });
+    const badSig = threw(
+      {
+        ...repTx,
+        signatures: [["gg".repeat(64), "bb".repeat(64)]],
+      },
+      false,
+    );
+    const ok =
+      badExtra &&
+      badKImage &&
+      shortKImage &&
+      badOutKey &&
+      badDepositKey &&
+      badSig;
     log(
-      "serializeTransaction rejects bad extra hex: " +
-        (threw ? "PASS" : "FAIL"),
-      threw,
+      "serializeTransaction rejects bad extra/key/sig hex: " +
+        (ok ? "PASS" : "FAIL"),
+      ok,
     );
   } catch (e) {
-    log(`serializeTransaction bad-extra guard failed: ${e}`, false);
+    log(`serializeTransaction bad-hex guard failed: ${e}`, false);
   }
 
   // ── agy review: even-length extra + deposit commits to exactly 1 signature ──
