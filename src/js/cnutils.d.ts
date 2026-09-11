@@ -45,8 +45,11 @@ export declare function d2h(integer: number | string): string;
  */
 export declare function d2s(integer: number | string): string;
 /**
- * @param {string} hex
- * @returns {number}
+ * Decode 8 little-endian bytes (16 hex chars) to a JS number.
+ *
+ * @param {string} hex - Exactly 16 hex characters (8 bytes, little-endian order).
+ * @returns {number} Unsigned integer value of those 8 bytes.
+ * @throws {Error} If `hex` is not a 16-character hex string.
  */
 export declare function h2d(hex: string): number;
 /**
@@ -67,14 +70,21 @@ export declare function ge_scalarmult(pub: string, sec: string): string;
  */
 export declare function ge_add(p1: string, p2: string): string;
 /**
- * @param {string} point
- * @returns {string}
+ * Negate an Ed25519 compressed point by flipping the sign bit in the high
+ * nibble of the last byte (`point[62]` ± 8).
+ *
+ * @param {string} point - 64-character compressed point hex.
+ * @returns {string} 64-character hex encoding of `-point`.
+ * @throws {Error} If `point` is not a 64-character hex string.
  */
 export declare function ge_neg(point: string): string;
 /**
- * @param {string} point1
- * @param {string} point2
- * @returns {string}
+ * Subtract two Ed25519 compressed points (`point1 - point2`).
+ *
+ * @param {string} point1 - 64-character compressed point hex.
+ * @param {string} point2 - 64-character compressed point hex.
+ * @returns {string} 64-character hex encoding of `point1 - point2`.
+ * @throws {Error} If either point fails `ge_add` / `ge_neg` validation.
  */
 export declare function ge_sub(point1: string, point2: string): string;
 /**
