@@ -35,7 +35,7 @@ export const STRUCT_SIZES = Object.freeze({
  *
  * @param {string} hex - Validated hex string (`""` decodes to an empty array).
  * @returns {Uint8Array}
- * @throws {Error} If `hex` is not a string or contains non-hex characters.
+ * @throws {Error} If `hex` is not a string, contains non-hex characters, or has odd length.
  */
 export function hextobin(hex) {
   if (typeof hex !== "string" || !/^[0-9a-fA-F]*$/.test(hex)) {
