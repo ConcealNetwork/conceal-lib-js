@@ -110,7 +110,7 @@ export function swapEndianC(string) {
  * @param {number | string} integer - Non-negative integer (pass large values as strings).
  * @returns {string} 64-char lowercase hex.
  * @throws {TypeError} If `integer` is not a number or decimal string.
- * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting.
+ * @throws {Error} If `integer` is negative or fractional, a number too large for exact formatting, or ≥ 2^256.
  */
 export function d2h(integer) {
   if (typeof integer !== "number" && typeof integer !== "string") {
@@ -127,9 +127,11 @@ export function d2h(integer) {
   for (let i = 0; i < 63; i++) {
     padding += "0";
   }
-  return (padding + new JSBigInt(integerStr).toString(16).toLowerCase()).slice(
-    -64,
-  );
+  const hex = new JSBigInt(integerStr).toString(16).toLowerCase();
+  if (hex.length > 64) {
+    throw new Error("value overflows 2^256!");
+  }
+  return (padding + hex).slice(-64);
 }
 
 /**
@@ -138,9 +140,12 @@ export function d2h(integer) {
  * @param {number | string} integer - Non-negative integer (pass large values as strings).
  * @returns {string} 64-char lowercase hex.
  * @throws {TypeError} If `integer` is not a number or decimal string.
- * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting.
+ * @throws {Error} If `integer` is negative or fractional, a number too large for exact formatting, or ≥ 2^256.
  */
 export function d2s(integer) {
+  if (typeof integer !== "number" && typeof integer !== "string") {
+    throw new TypeError("d2s expects a number or decimal string");
+  }
   if (typeof integer === "string") {
     return swapEndian(d2h(integer));
   }

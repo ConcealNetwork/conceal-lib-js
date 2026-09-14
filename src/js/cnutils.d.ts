@@ -44,7 +44,7 @@ export declare function swapEndianC(string: string): string;
  * @param {number | string} integer - Non-negative integer (pass large values as strings).
  * @returns {string} 64-char lowercase hex.
  * @throws {TypeError} If `integer` is not a number or decimal string.
- * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting.
+ * @throws {Error} If `integer` is negative or fractional, a number too large for exact formatting, or ≥ 2^256.
  */
 export declare function d2h(integer: number | string): string;
 /**
@@ -53,7 +53,7 @@ export declare function d2h(integer: number | string): string;
  * @param {number | string} integer - Non-negative integer (pass large values as strings).
  * @returns {string} 64-char lowercase hex.
  * @throws {TypeError} If `integer` is not a number or decimal string.
- * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting.
+ * @throws {Error} If `integer` is negative or fractional, a number too large for exact formatting, or ≥ 2^256.
  */
 export declare function d2s(integer: number | string): string;
 /**

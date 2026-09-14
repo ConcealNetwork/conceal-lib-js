@@ -288,6 +288,63 @@ export async function runCnutilsTests(log) {
     log(`d2h/d2s/d2b validation check failed: ${e}`, false);
   }
 
+  // ── validation hardening: d2h / d2s cap values at the 2^256 boundary ─────
+  try {
+    const max256Hex = "f".repeat(64);
+    const below = (2n ** 256n - 1n).toString();
+    const at = (2n ** 256n).toString();
+    const above = (2n ** 256n + 1n).toString();
+
+    let belowOk = false;
+    try {
+      belowOk =
+        cnutils.d2h(below) === max256Hex && cnutils.d2s(below) === max256Hex;
+    } catch {}
+
+    let atThrew = false;
+    try {
+      cnutils.d2h(at);
+    } catch (e) {
+      atThrew =
+        e instanceof Error &&
+        !(e instanceof TypeError) &&
+        /2\^256/.test(e.message);
+    }
+    let aboveThrew = false;
+    try {
+      cnutils.d2s(above);
+    } catch (e) {
+      aboveThrew =
+        e instanceof Error &&
+        !(e instanceof TypeError) &&
+        /2\^256/.test(e.message);
+    }
+
+    const ok = belowOk && atThrew && aboveThrew;
+    log(`d2h/d2s reject values ≥ 2^256: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`d2h/d2s 2^256 boundary check failed: ${e}`, false);
+  }
+
+  // ── validation hardening: d2s rejects undefined / null with a TypeError ──
+  try {
+    const cases = [undefined, null];
+    const ok = cases.every((value) => {
+      try {
+        cnutils.d2s(value);
+        return false;
+      } catch (e) {
+        return e instanceof TypeError && /d2s expects/.test(e.message);
+      }
+    });
+    log(
+      `d2s rejects undefined/null with TypeError: ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
+  } catch (e) {
+    log(`d2s undefined/null check failed: ${e}`, false);
+  }
+
   // ── validation hardening: h2d rejects values above MAX_SAFE_INTEGER ──────
   try {
     let allF = true;
