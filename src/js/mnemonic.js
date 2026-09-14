@@ -131,14 +131,14 @@ function mn_get_checksum_index(words, prefix_len) {
  * @param {string} str - 64-character hex string (32-byte private key).
  * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} Space-separated mnemonic phrase.
- * @throws {string} If the wordset is unknown, or `str` is not a 64-char hex string.
+ * @throws {Error} If the wordset is unknown, or `str` is not a 64-char hex string.
  */
 function mn_encode(str, wordset_name) {
   wordset_name = wordset_name || mn_default_wordset;
   var wordset = mn_words[wordset_name];
-  if (!wordset) throw `unknown language: ${wordset_name}`;
+  if (!wordset) throw new Error(`unknown language: ${wordset_name}`);
   if (typeof str !== "string" || !/^[0-9a-fA-F]{64}$/.test(str)) {
-    throw "Invalid hex seed: expected a 64-character hex string";
+    throw new Error("Invalid hex seed: expected a 64-character hex string");
   }
   var out = [];
   var n = wordset.words.length;
@@ -162,7 +162,7 @@ function mn_encode(str, wordset_name) {
 }
 
 function mn_swap_endian_4byte(str) {
-  if (str.length !== 8) throw `Invalid input length: ${str.length}`;
+  if (str.length !== 8) throw new Error(`Invalid input length: ${str.length}`);
   return str.slice(6, 8) + str.slice(4, 6) + str.slice(2, 4) + str.slice(0, 2);
 }
 
@@ -177,24 +177,28 @@ function mn_swap_endian_4byte(str) {
  * @param {string} str - Space-separated mnemonic phrase (25 words for English).
  * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} 64-character lowercase hex string (32-byte private key).
- * @throws {string} If too few words are given, a word is unrecognised,
- *   or the checksum word does not match.
+ * @throws {Error} If the wordset is unknown, too few words are given, a word
+ *   is unrecognised, or the checksum word does not match.
  */
 function mn_decode(str, wordset_name) {
   wordset_name = wordset_name || mn_default_wordset;
   var wordset = mn_words[wordset_name];
+  if (!wordset) throw new Error(`unknown language: ${wordset_name}`);
   var out = "";
   var n = wordset.words.length;
   var wlist = str.split(" ");
   var checksum_word = "";
-  if (wlist.length < 12) throw "You've entered too few words, please try again";
+  if (wlist.length < 12)
+    throw new Error("You've entered too few words, please try again");
   if (
     (wordset.prefix_len === 0 && wlist.length % 3 !== 0) ||
     (wordset.prefix_len > 0 && wlist.length % 3 === 2)
   )
-    throw "You've entered too few words, please try again";
+    throw new Error("You've entered too few words, please try again");
   if (wordset.prefix_len > 0 && wlist.length % 3 === 0)
-    throw "You seem to be missing the last word in your private key, please try again";
+    throw new Error(
+      "You seem to be missing the last word in your private key, please try again",
+    );
   if (wordset.prefix_len > 0) {
     // Pop checksum from mnemonic
     checksum_word = wlist.pop();
@@ -212,11 +216,13 @@ function mn_decode(str, wordset_name) {
       w3 = mn_find_word_index(wlist[i + 2], wordset);
     }
     if (w1 === -1 || w2 === -1 || w3 === -1) {
-      throw "invalid word in mnemonic";
+      throw new Error("invalid word in mnemonic");
     }
     const x = w1 + n * ((n - w1 + w2) % n) + n * n * ((n - w2 + w3) % n);
     if (x % n !== w1)
-      throw "Something went wrong when decoding your private key, please try again";
+      throw new Error(
+        "Something went wrong when decoding your private key, please try again",
+      );
     out += mn_swap_endian_4byte(`0000000${x.toString(16)}`.slice(-8));
   }
   // Verify checksum
@@ -227,7 +233,9 @@ function mn_decode(str, wordset_name) {
       expected_checksum_word.slice(0, wordset.prefix_len) !==
       checksum_word.slice(0, wordset.prefix_len)
     ) {
-      throw "Your private key could not be verified, please try again";
+      throw new Error(
+        "Your private key could not be verified, please try again",
+      );
     }
   }
   return out;
@@ -247,16 +255,20 @@ function mn_decode(str, wordset_name) {
  * @param {number} bits - Number of random bits to generate.  Must be a
  *   positive multiple of 32; typically `256` for a 32-byte seed.
  * @returns {string} Lowercase hex string of length `bits / 4`.
- * @throws {string} If `bits` is not a multiple of 32, or if the environment
+ * @throws {Error} If `bits` is not a multiple of 32, or if the environment
  *   does not support the Web Crypto API, or if random generation fails.
  */
 function mn_random(bits) {
   if (bits % 32 !== 0)
-    throw `Something weird went wrong: Invalid number of bits - ${bits}`;
+    throw new Error(
+      `Something weird went wrong: Invalid number of bits - ${bits}`,
+    );
   var array = new Uint32Array(bits / 32);
   var cryptoApi = globalThis.crypto;
   if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function")
-    throw "Unfortunately Conceal Network only runs in environments that support the Web Crypto API";
+    throw new Error(
+      "Unfortunately Conceal Network only runs in environments that support the Web Crypto API",
+    );
   var i = 0;
 
   function arr_is_zero() {
@@ -271,7 +283,9 @@ function mn_random(bits) {
     ++i;
   } while (i < 5 && arr_is_zero());
   if (arr_is_zero()) {
-    throw "Something went wrong and we could not securely generate random data for your account";
+    throw new Error(
+      "Something went wrong and we could not securely generate random data for your account",
+    );
   }
   // Convert to hex
   var out = "";

@@ -133,16 +133,16 @@ Exported constant: `STRUCT_SIZES`.
 | Function | Parameters | Returns | Notes |
 |---|---|---|---|
 | `hextobin` / `bintohex` | hex ↔ bytes | `Uint8Array` / hex | |
-| `swapEndian` / `swapEndianC` | string | string | Byte or char order |
-| `d2h` / `d2s` / `h2d` / `d2b` | integer / hex | hex or number | `JSBigInt` internally; `d2s` = endian-swapped scalar; `h2d` requires exactly 16-char hex and throws otherwise |
-| `encode_varint` / `encode_varint_term` | `number \| string \| JSBigInt` | hex | Unsigned CryptoNote varint; throws if negative |
+| `swapEndian` / `swapEndianC` | string | string | Byte or char order; `swapEndian` throws on non-hex input or odd length |
+| `d2h` / `d2s` / `h2d` / `d2b` | integer / hex | hex or number | `JSBigInt` internally; `d2s` = endian-swapped scalar; `d2h` / `d2s` / `d2b` throw on negative or fractional input; `h2d` requires exactly 16-char hex and throws otherwise, and throws if the value exceeds `Number.MAX_SAFE_INTEGER` |
+| `encode_varint` / `encode_varint_term` | `number \| string \| JSBigInt` | hex | Unsigned CryptoNote varint; throws if the input is missing, fractional, or negative |
 | `cn_fast_hash` | hex string | 64-char hex | `keccak_256(hextobin(input))` via `tiers/sha3.js` |
 | `derivation_to_scalar` | 64-char derivation + index | 64-char scalar | WASM `hash_to_scalar` |
 | `valid_hex` / `hex_xor` / `trimRight` / `padLeft` | — | — | Utilities |
 | `sec_key_to_pub` / `ge_scalarmult*` / `ge_add` / `ge_sub` / `ge_neg` | 64-char hex | 64-char hex | `nacl.ll`; `ge_neg` / `ge_sub` throw if not 64-char hex |
 | `ge_double_scalarmult_base_vartime` | `c`, `P`, `r` | 64-char hex | |
 | `ge_double_scalarmult_postcomp_vartime` | `r`, `P`, `c`, `I` | 64-char hex | Uses `crypto.hash_to_ec32` on `P` (32-byte point) |
-| `decompose_amount_into_digits` | amount | `JSBigInt[]` | |
+| `decompose_amount_into_digits` | amount | `JSBigInt[]` | Power-of-ten digit components; throws on negative or fractional amounts |
 | `decode_rct_ecdh` / `encode_rct_ecdh` | `{ mask, amount }`, key | `{ mask, amount }` | WASM scalar add/sub |
 
 ---
@@ -167,12 +167,12 @@ Exported constant: `STRUCT_SIZES`.
 | Function | Parameters | Returns | Notes |
 |---|---|---|---|
 | `extractTxPublicKey(extraHex)` | transaction `extra` as hex | 64-char hex or `null` | Parses tx_extra; first `TX_EXTRA_TAG_PUBKEY` |
-| `parseTxExtra(bytes)` | `number[]` or `Uint8Array` | `{ type, data }[]` | Port of `TransactionsExplorer.parseExtra` |
+| `parseTxExtra(bytes)` | `number[]` or `Uint8Array` | `{ type, data, truncated? }[]` | Port of `TransactionsExplorer.parseExtra`; a chunk whose declared size exceeds the remaining bytes is clamped and flagged `truncated: true` instead of being silently accepted |
 | `buildReceiveOutputChecks(vouts)` | `TxVout[]` | `{ indices, keys }` | Type `"02"` uses incrementing index; `"03"` uses vout index |
 | `scanReceiveOutputs(txPub, viewSec, spendPub, vouts)` | keys + vouts | `boolean` | **One** `crypto.scan_receive_outputs` WASM call |
 | `scanSpendInputs(vins, ctx)` | vins + context | `boolean` | Key images (spend wallet) or global indexes (view-only) |
 | `ownsTx(tx, ctx)` | `TxScanInput` + `TxScanContext` | `boolean` | Receive scan, then spend scan |
-| `ownsTxBatch(txs, ctx)` | array + context | `boolean[]` | **One** `crypto.scan_receive_outputs_batch` WASM call + JS spend checks |
+| `ownsTxBatch(txs, ctx)` | array + context | `boolean[]` | **One** `crypto.scan_receive_outputs_batch` WASM call + JS spend checks; malformed output keys are skipped per transaction instead of failing the batch |
 | `serializeTransaction(tx, headerOnly?)` | `TxToSerialize` + optional `boolean` | hex string | Broadcast-ready serialization (plain ring-signature path, non-RingCT). When `headerOnly` is `true`, omits signatures (prefix only). Supports `input_to_key` / `input_to_deposit_key` and matching vout targets. Throws on invalid hex, signature count mismatch, or unhandled vin/vout types. |
 | `getTransactionPrefixHash(tx)` | `TxToSerialize` | 64-char hex | `cn_fast_hash(serializeTransaction(tx, true))` — prefix hash used for signing. |
 | `serializeTransactionWithHash(tx)` | `TxToSerialize` | `{ raw, hash }` | Full serialization plus `cn_fast_hash(raw)`. Port of `CnTransactions.serialize_tx_with_hash`. |
@@ -420,6 +420,45 @@ rustup target add wasm32-unknown-unknown
 cargo install wasm-pack
 sudo apt install clang lld
 ```
+
+---
+
+## Input validation behavior
+
+The JavaScript API surface follows a **throw when we own the input, contain
+when the world owns it** policy.
+
+**Throwing functions** (real `Error` / `TypeError` instances, never strings —
+inputs come from application code, so a throw means a caller bug, not hostile
+data). All throw before producing output:
+
+- `cnutils.swapEndian` — non-string, non-hex, or odd-length input.
+- `cnutils.d2h` / `d2s` / `d2b` — negative, fractional, or non-numeric input
+  (and the existing precision / uint64-overflow guards).
+- `cnutils.h2d` — 16-char hex requirement, plus values above
+  `Number.MAX_SAFE_INTEGER` (previously silently rounded).
+- `cnutils.decompose_amount_into_digits` — negative, fractional, or non-numeric
+  amounts (previously the sign was dropped and fractions garbled).
+- `cnutils.encode_varint` / `encode_varint_term` — missing (`undefined`/`null`),
+  non-integer, or negative input (previously `undefined` silently encoded as 0).
+- `mnemonic.mn_encode` / `mn_decode` — unknown wordset, invalid seed/phrase.
+  All mnemonic errors are `Error` instances.
+
+**Containing functions** (inputs come from the network or partially trusted
+data, so one malformed element must not take down the whole operation):
+
+- `transactions.parseTxExtra` — never throws on malformed extra bytes; a chunk
+  whose declared size exceeds the remaining bytes is returned clamped with
+  `truncated: true`.
+- `transactions.ownsTxBatch` — a malformed output key is skipped for that
+  transaction only; the rest of the batch is still scanned (the WASM batch
+  scanner strict-decodes every key).
+- `transactions.extractTxPublicKey` — returns `null` for missing or invalid
+  transaction public keys.
+
+Downstream guidance: catch `Error` (check `.message` for programmatic
+handling); treat `parseTxExtra(...).truncated` chunks as untrusted and re-check
+payload lengths before use.
 
 ---
 

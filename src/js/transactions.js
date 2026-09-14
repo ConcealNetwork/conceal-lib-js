@@ -29,6 +29,7 @@ export const TX_EXTRA_TTL = 0x05;
  * @typedef {Object} TxExtra
  * @property {number} type - Extra field tag byte.
  * @property {number[]} data - Payload bytes.
+ * @property {boolean} [truncated] - True when the declared payload size exceeded the remaining bytes.
  */
 
 /**
@@ -68,6 +69,9 @@ export const TX_EXTRA_TTL = 0x05;
 
 /**
  * Parse transaction extra bytes into tagged chunks (CryptoNote tx_extra).
+ *
+ * Never throws on malformed input: a chunk whose declared size exceeds the
+ * remaining bytes is returned clamped and flagged `truncated: true`.
  *
  * @param {number[] | Uint8Array} oExtra - Raw extra field bytes.
  * @returns {TxExtra[]}
@@ -112,9 +116,17 @@ export function parseTxExtra(oExtra) {
       }
 
       if (startOffset > 0 && extraSize > 0) {
-        const data = extra.slice(startOffset, startOffset + extraSize);
-        extras.push({ type: extra[0], data });
-        extra.splice(0, startOffset + extraSize);
+        const end = startOffset + extraSize;
+        const truncated = end > extra.length;
+        /** @type {TxExtra} */
+        const chunk = {
+          type: extra[0],
+          data: extra.slice(startOffset, Math.min(end, extra.length)),
+        };
+        if (truncated) chunk.truncated = true;
+        extras.push(chunk);
+        extra.splice(0, end);
+        if (truncated) break;
       } else if (!extraSize) {
         break;
       }
@@ -190,6 +202,9 @@ export function buildReceiveOutputChecks(vouts) {
 /**
  * Flat arrays for `scan_receive_outputs_batch` (one WASM call for many txs).
  *
+ * Malformed output keys are skipped: the WASM batch scan strict-decodes every
+ * key, so one invalid entry would otherwise fail the whole batch.
+ *
  * @param {TxScanInput[]} txs
  * @returns {{ txPubHex: string[], indices: Uint32Array, keys: string[], txOffsets: Uint32Array }}
  */
@@ -212,8 +227,12 @@ function buildBatchReceivePayload(txs) {
     }
     txPubHex.push(pub ?? "");
     const checks = buildReceiveOutputChecks(tx.vouts);
-    indices.push(...checks.indices);
-    keys.push(...checks.keys);
+    for (let i = 0; i < checks.keys.length; i++) {
+      if (/^[0-9a-fA-F]{64}$/.test(checks.keys[i])) {
+        indices.push(checks.indices[i]);
+        keys.push(checks.keys[i]);
+      }
+    }
     txOffsets.push(indices.length);
   }
 

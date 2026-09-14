@@ -16,7 +16,7 @@ export declare const STRUCT_SIZES: Readonly<{
  *
  * @param {string} hex - Validated hex string (`""` decodes to an empty array).
  * @returns {Uint8Array}
- * @throws {Error} If `hex` is not a string or contains non-hex characters.
+ * @throws {Error} If `hex` is not a string, contains non-hex characters, or has odd length.
  */
 export declare function hextobin(hex: string): Uint8Array;
 /**
@@ -25,8 +25,12 @@ export declare function hextobin(hex: string): Uint8Array;
  */
 export declare function bintohex(bin: Uint8Array | string): string;
 /**
- * @param {string} hex
- * @returns {string}
+ * Reverse the byte order of a hex string (little-endian ↔ big-endian).
+ *
+ * @param {string} hex - Even-length hex string.
+ * @returns {string} Byte-swapped hex string.
+ * @throws {TypeError} If `hex` is not a string.
+ * @throws {Error} If `hex` contains non-hex characters or has odd length.
  */
 export declare function swapEndian(hex: string): string;
 /**
@@ -35,13 +39,21 @@ export declare function swapEndian(hex: string): string;
  */
 export declare function swapEndianC(string: string): string;
 /**
- * @param {number | string} integer
- * @returns {string}
+ * Format a non-negative integer as 64-char lowercase hex (big-endian).
+ *
+ * @param {number | string} integer - Non-negative integer (pass large values as strings).
+ * @returns {string} 64-char lowercase hex.
+ * @throws {TypeError} If `integer` is not a number or decimal string.
+ * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting.
  */
 export declare function d2h(integer: number | string): string;
 /**
- * @param {number | string} integer
- * @returns {string}
+ * Format a non-negative integer as 64-char lowercase hex (little-endian).
+ *
+ * @param {number | string} integer - Non-negative integer (pass large values as strings).
+ * @returns {string} 64-char lowercase hex.
+ * @throws {TypeError} If `integer` is not a number or decimal string.
+ * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting.
  */
 export declare function d2s(integer: number | string): string;
 /**
@@ -49,14 +61,18 @@ export declare function d2s(integer: number | string): string;
  *
  * @param {string} hex - Exactly 16 hex characters (8 bytes, little-endian order).
  * @returns {number} Unsigned integer value of those 8 bytes.
- * @throws {Error} If `hex` is not a 16-character hex string.
+ * @throws {Error} If `hex` is not a 16-character hex string, or the value exceeds `Number.MAX_SAFE_INTEGER`.
  */
 export declare function h2d(hex: string): number;
 /**
- * @param {number} integer
- * @returns {string}
+ * Format a non-negative integer as a 64-bit little-endian bit-string.
+ *
+ * @param {number | string} integer - Non-negative integer (pass large values as strings).
+ * @returns {string} 64-character bit-string.
+ * @throws {TypeError} If `integer` is not a number or decimal string.
+ * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting, or overflows uint64.
  */
-export declare function d2b(integer: number): string;
+export declare function d2b(integer: number | string): string;
 /**
  * @param {string} pub
  * @param {string} sec
@@ -113,7 +129,7 @@ export declare function derivation_to_scalar(derivation: string, output_index: n
  *
  * @param {number | string} i - Non-negative integer (or decimal string).
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
  */
 export declare function encode_varint(i: number | string): string;
 /**
@@ -121,7 +137,7 @@ export declare function encode_varint(i: number | string): string;
  *
  * @param {number | string} i - Non-negative integer (or decimal string).
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
  */
 export declare function encode_varint_term(i: number | string): string;
 /**
@@ -168,8 +184,12 @@ export declare function ge_double_scalarmult_base_vartime(c: string, P: string, 
  */
 export declare function ge_double_scalarmult_postcomp_vartime(r: string, P: string, c: string, I: string): string;
 /**
- * @param {number | string} amount
- * @returns {import('./tiers/biginteger.js').JSBigInt[]}
+ * Decompose a non-negative integer amount into power-of-ten digit components.
+ *
+ * @param {number | string} amount - Non-negative integer (or decimal string).
+ * @returns {import('./tiers/biginteger.js').JSBigInt[]} Digit components, most significant first.
+ * @throws {TypeError} If `amount` is not a number or decimal string.
+ * @throws {Error} If `amount` is negative or fractional.
  */
 export declare function decompose_amount_into_digits(amount: number | string): import('./tiers/biginteger.js').JSBigInt[];
 export type RctEcdh = {

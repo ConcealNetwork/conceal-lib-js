@@ -227,6 +227,138 @@ export async function runCnutilsTests(log) {
     log(`decompose_amount_into_digits failed: ${e}`, false);
   }
 
+  // ── validation hardening: swapEndian throws on invalid input ─────────────
+  try {
+    let typeError = false;
+    let oddLength = false;
+    let nonHex = false;
+    try {
+      cnutils.swapEndian(123);
+    } catch (e) {
+      typeError = e instanceof TypeError;
+    }
+    try {
+      cnutils.swapEndian("aabbccd");
+    } catch (e) {
+      oddLength =
+        e instanceof Error &&
+        !(e instanceof TypeError) &&
+        e.message === "Hex string has invalid length!";
+    }
+    try {
+      cnutils.swapEndian("aazz");
+    } catch (e) {
+      nonHex =
+        e instanceof Error &&
+        !(e instanceof TypeError) &&
+        e.message === "Invalid hex string";
+    }
+    const ok = typeError && oddLength && nonHex;
+    log(`swapEndian rejects invalid input: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`swapEndian validation check failed: ${e}`, false);
+  }
+
+  // ── validation hardening: d2h / d2s / d2b reject negative or fractional ──
+  try {
+    const cases = [
+      () => cnutils.d2h(-1),
+      () => cnutils.d2h("-5"),
+      () => cnutils.d2h("1.5"),
+      () => cnutils.d2h(undefined),
+      () => cnutils.d2s(-5),
+      () => cnutils.d2s("-1"),
+      () => cnutils.d2b(-123),
+      () => cnutils.d2b("-1"),
+      () => cnutils.d2b("2.5"),
+    ];
+    const ok = cases.every((fn) => {
+      try {
+        fn();
+        return false;
+      } catch (e) {
+        return e instanceof Error;
+      }
+    });
+    log(
+      `d2h/d2s/d2b reject negative or fractional input: ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
+  } catch (e) {
+    log(`d2h/d2s/d2b validation check failed: ${e}`, false);
+  }
+
+  // ── validation hardening: h2d rejects values above MAX_SAFE_INTEGER ──────
+  try {
+    let allF = true;
+    try {
+      cnutils.h2d("ffffffffffffffff");
+      allF = false;
+    } catch {}
+    let pow53 = true;
+    try {
+      cnutils.h2d("0000000000002000");
+      pow53 = false;
+    } catch {}
+    const boundaryOk = cnutils.h2d("ffffffffffff0f00") === 4503599627370495;
+    const ok = allF && pow53 && boundaryOk;
+    log(
+      `h2d rejects values above MAX_SAFE_INTEGER: ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
+  } catch (e) {
+    log(`h2d overflow check failed: ${e}`, false);
+  }
+
+  // ── validation hardening: decompose rejects negative / fractional / junk ─
+  try {
+    const cases = [-123, "-123", "1.5", 1.5, "12a3", "", null, undefined];
+    const ok = cases.every((value) => {
+      try {
+        cnutils.decompose_amount_into_digits(value);
+        return false;
+      } catch (e) {
+        return e instanceof Error;
+      }
+    });
+    log(
+      `decompose_amount_into_digits rejects invalid amounts: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`decompose_amount_into_digits validation check failed: ${e}`, false);
+  }
+
+  // ── validation hardening: varint encoders reject undefined / fractional ──
+  try {
+    const cases = [undefined, null, Number.NaN, 1.5, "1.5", "1e5", "abc"];
+    const ok = cases.every((value) => {
+      let encodeThrew = false;
+      let termThrew = false;
+      try {
+        cnutils.encode_varint(value);
+      } catch (e) {
+        encodeThrew = e instanceof Error;
+      }
+      try {
+        cnutils.encode_varint_term(value);
+      } catch (e) {
+        termThrew = e instanceof Error;
+      }
+      return encodeThrew && termThrew;
+    });
+    log(
+      `encode_varint/term reject undefined, null, NaN, fractional: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`varint validation check failed: ${e}`, false);
+  }
+
   // ── curve (nacl.ll) vs crypto WASM ────────────────────────────────────────
   try {
     const reduced = wasmCrypto.sc_reduce32(SEED);

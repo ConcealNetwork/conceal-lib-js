@@ -5,10 +5,12 @@ import {
   getTransactionPrefixHash,
   ownsTx,
   ownsTxBatch,
+  parseTxExtra,
   scanReceiveOutputs,
   scanSpendInputs,
   serializeTransaction,
   serializeTransactionWithHash,
+  TX_EXTRA_NONCE,
   TX_EXTRA_TAG_PUBKEY,
 } from "../src/js/transactions.js";
 import init, {
@@ -161,6 +163,62 @@ export async function runTransactionsTests(log) {
     );
   } catch (e) {
     log(`ownsTxBatch malformed-extra check failed: ${e}`, false);
+  }
+
+  // ── ownsTxBatch: malformed output key contained, batch stays accurate ────
+  try {
+    const txs = [
+      {
+        extraHex,
+        vouts: [{ type: "02", key: "zz".repeat(32) }],
+      },
+      {
+        extraHex,
+        vouts: [{ type: "02", key: derivedKey0 }],
+      },
+    ];
+    const ctx = {
+      viewSecretHex: walletKeys.sec,
+      spendPublicHex: walletKeys.pub,
+    };
+    const batch = ownsTxBatch(txs, ctx);
+    const parity = txs.every((tx, i) => ownsTx(tx, ctx) === batch[i]);
+    const ok = batch[0] === false && batch[1] === true && parity;
+    log(
+      `ownsTxBatch malformed output key contained, owned tx preserved: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`ownsTxBatch malformed-key check failed: ${e}`, false);
+  }
+
+  // ── parseTxExtra flags truncated declared size instead of silent cut ─────
+  try {
+    const truncated = parseTxExtra([TX_EXTRA_NONCE, 5, 0x41, 0x42]);
+    const flagged =
+      truncated.length === 1 &&
+      truncated[0].type === TX_EXTRA_NONCE &&
+      truncated[0].truncated === true &&
+      truncated[0].data.length === 2;
+    const wellFormed = parseTxExtra([
+      TX_EXTRA_TAG_PUBKEY,
+      ...new Array(32).fill(0xab),
+    ]);
+    const clean =
+      wellFormed.length === 1 &&
+      wellFormed[0].truncated === undefined &&
+      wellFormed[0].data.length === 32;
+    const ok = flagged && clean;
+    log(
+      `parseTxExtra flags truncated extra, clean extras unflagged: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`parseTxExtra truncation check failed: ${e}`, false);
   }
 
   // ── scanReceiveOutputs type 02 ───────────────────────────────────────────

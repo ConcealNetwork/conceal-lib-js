@@ -22,6 +22,10 @@ export type TxExtra = {
      * - Payload bytes.
      */
     data: number[];
+    /**
+     * - True when the declared payload size exceeded the remaining bytes.
+     */
+    truncated?: boolean;
 };
 export type TxVout = {
     /**
@@ -97,6 +101,7 @@ export type ReceiveOutputChecks = {
  * @typedef {Object} TxExtra
  * @property {number} type - Extra field tag byte.
  * @property {number[]} data - Payload bytes.
+ * @property {boolean} [truncated] - True when the declared payload size exceeded the remaining bytes.
  */
 /**
  * @typedef {Object} TxVout
@@ -130,6 +135,9 @@ export type ReceiveOutputChecks = {
  */
 /**
  * Parse transaction extra bytes into tagged chunks (CryptoNote tx_extra).
+ *
+ * Never throws on malformed input: a chunk whose declared size exceeds the
+ * remaining bytes is returned clamped and flagged `truncated: true`.
  *
  * @param {number[] | Uint8Array} oExtra - Raw extra field bytes.
  * @returns {TxExtra[]}
