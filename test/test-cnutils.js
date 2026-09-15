@@ -153,26 +153,47 @@ export async function runCnutilsTests(log) {
   }
 
   try {
-    // Numeric negatives → "varint cannot be negative".
-    // String negatives (e.g. "-5") fail the format check first →
-    //   "varint input must be a non-negative integer".
-    // Both are correct — just require a real Error instance.
-    const cases = [-5, "-5", -1, "-1"];
-    const ok = cases.every((value) => {
+    // Numeric negatives hit the sign check after integer validation.
+    const numericCases = [-5, -1];
+    const numericOk = numericCases.every((value) => {
       let encodeThrew = false;
       let termThrew = false;
       try {
         cnutils.encode_varint(value);
       } catch (e) {
-        encodeThrew = e instanceof Error;
+        encodeThrew =
+          e instanceof Error && e.message === "varint cannot be negative";
       }
       try {
         cnutils.encode_varint_term(value);
       } catch (e) {
-        termThrew = e instanceof Error;
+        termThrew =
+          e instanceof Error && e.message === "varint cannot be negative";
       }
       return encodeThrew && termThrew;
     });
+    // String negatives fail the /^\d+$/ format check before JSBigInt.
+    const stringCases = ["-5", "-1"];
+    const stringOk = stringCases.every((value) => {
+      let encodeThrew = false;
+      let termThrew = false;
+      try {
+        cnutils.encode_varint(value);
+      } catch (e) {
+        encodeThrew =
+          e instanceof Error &&
+          e.message === "varint input must be a non-negative integer";
+      }
+      try {
+        cnutils.encode_varint_term(value);
+      } catch (e) {
+        termThrew =
+          e instanceof Error &&
+          e.message === "varint input must be a non-negative integer";
+      }
+      return encodeThrew && termThrew;
+    });
+    const ok = numericOk && stringOk;
     log(`encode_varint rejects negatives: ${ok ? "PASS" : "FAIL"}`, ok);
   } catch (e) {
     log(`encode_varint negative check failed: ${e}`, false);
