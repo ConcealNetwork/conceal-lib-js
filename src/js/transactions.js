@@ -29,6 +29,7 @@ export const TX_EXTRA_TTL = 0x05;
  * @typedef {Object} TxExtra
  * @property {number} type - Extra field tag byte.
  * @property {number[]} data - Payload bytes.
+ * @property {boolean} [truncated] - True when the declared payload size exceeded the remaining bytes.
  */
 
 /**
@@ -68,6 +69,9 @@ export const TX_EXTRA_TTL = 0x05;
 
 /**
  * Parse transaction extra bytes into tagged chunks (CryptoNote tx_extra).
+ *
+ * Never throws on malformed input: a chunk whose declared size exceeds the
+ * remaining bytes is returned clamped and flagged `truncated: true`.
  *
  * @param {number[] | Uint8Array} oExtra - Raw extra field bytes.
  * @returns {TxExtra[]}
@@ -112,9 +116,17 @@ export function parseTxExtra(oExtra) {
       }
 
       if (startOffset > 0 && extraSize > 0) {
-        const data = extra.slice(startOffset, startOffset + extraSize);
-        extras.push({ type: extra[0], data });
-        extra.splice(0, startOffset + extraSize);
+        const end = startOffset + extraSize;
+        const truncated = end > extra.length;
+        /** @type {TxExtra} */
+        const chunk = {
+          type: extra[0],
+          data: extra.slice(startOffset, Math.min(end, extra.length)),
+        };
+        if (truncated) chunk.truncated = true;
+        extras.push(chunk);
+        extra.splice(0, end);
+        if (truncated) break;
       } else if (!extraSize) {
         break;
       }
@@ -159,6 +171,12 @@ export function extractTxPublicKey(extraHex) {
  * Build flat derivation-index / on-chain-key lists for receive scanning.
  * Matches `TransactionsExplorer.ownsTx` vout index rules (type `"02"` vs `"03"`).
  *
+ * Malformed output keys (not exactly 64 hex characters, case-insensitive) are
+ * silently skipped. `keyIndex` always advances for every key slot — valid or
+ * not — for both type `"02"` and `"03"`, matching the reference
+ * (`TransactionsExplorer` derives with `iOut` and iterates all keys
+ * unconditionally).
+ *
  * @param {TxVout[]} vouts
  * @returns {ReceiveOutputChecks}
  */
@@ -172,14 +190,19 @@ export function buildReceiveOutputChecks(vouts) {
   for (let iOut = 0; iOut < vouts.length; iOut++) {
     const out = vouts[iOut];
     if (out.type === "02" && typeof out.key === "string") {
-      indices.push(keyIndex);
-      keys.push(out.key);
-      keyIndex += 1;
+      if (/^[0-9a-fA-F]{64}$/.test(out.key)) {
+        indices.push(keyIndex);
+        keys.push(out.key);
+      }
+      keyIndex += 1; // advance even when key is skipped — index is positional
     } else if (out.type === "03" && Array.isArray(out.keys)) {
       for (let iKey = 0; iKey < out.keys.length; iKey++) {
-        indices.push(iOut);
-        keys.push(out.keys[iKey]);
-        keyIndex += 1;
+        const key = out.keys[iKey];
+        if (typeof key === "string" && /^[0-9a-fA-F]{64}$/.test(key)) {
+          indices.push(iOut);
+          keys.push(key);
+        }
+        keyIndex += 1; // advance for every slot, valid or not — matches reference (iOut-based derivation, all keys are positional)
       }
     }
   }
@@ -189,6 +212,9 @@ export function buildReceiveOutputChecks(vouts) {
 
 /**
  * Flat arrays for `scan_receive_outputs_batch` (one WASM call for many txs).
+ *
+ * Malformed output keys are skipped: the WASM batch scan strict-decodes every
+ * key, so one invalid entry would otherwise fail the whole batch.
  *
  * @param {TxScanInput[]} txs
  * @returns {{ txPubHex: string[], indices: Uint32Array, keys: string[], txOffsets: Uint32Array }}

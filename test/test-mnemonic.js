@@ -121,6 +121,31 @@ export async function runMnemonicTests(log) {
     log(`unknown language correctly rejected: ${e}`, true);
   }
 
+  // ── Test 9b: unknown wordset throws a proper Error in encode and decode ──
+  try {
+    let encodeThrew = false;
+    let decodeThrew = false;
+    try {
+      mn_encode(hexKey, "klingon");
+    } catch (e) {
+      encodeThrew =
+        e instanceof Error && e.message === "unknown language: klingon";
+    }
+    try {
+      mn_decode("abbey abbey", "klingon");
+    } catch (e) {
+      decodeThrew =
+        e instanceof Error && e.message === "unknown language: klingon";
+    }
+    const ok = encodeThrew && decodeThrew;
+    log(
+      `unknown wordset throws Error (encode + decode): ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
+  } catch (e) {
+    log(`unknown wordset check failed: ${e}`, false);
+  }
+
   // ── Test 10: all language round-trips ────────────────────────────────────
   for (const { name, expectedWords } of LANGUAGES) {
     try {

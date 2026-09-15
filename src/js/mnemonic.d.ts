@@ -21,7 +21,7 @@
  * @param {string} str - 64-character hex string (32-byte private key).
  * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} Space-separated mnemonic phrase.
- * @throws {string} If the wordset is unknown, or `str` is not a 64-char hex string.
+ * @throws {Error} If the wordset is unknown, or `str` is not a 64-char hex string.
  */
 declare function mn_encode(str: string, wordset_name?: 'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'): string;
 /**
@@ -35,8 +35,8 @@ declare function mn_encode(str: string, wordset_name?: 'english' | 'spanish' | '
  * @param {string} str - Space-separated mnemonic phrase (25 words for English).
  * @param {'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'} [wordset_name='english'] - Wordset to use.
  * @returns {string} 64-character lowercase hex string (32-byte private key).
- * @throws {string} If too few words are given, a word is unrecognised,
- *   or the checksum word does not match.
+ * @throws {Error} If the wordset is unknown, too few words are given, a word
+ *   is unrecognised, or the checksum word does not match.
  */
 declare function mn_decode(str: string, wordset_name?: 'english' | 'spanish' | 'portuguese' | 'japanese' | 'electrum'): string;
 /**
@@ -53,7 +53,7 @@ declare function mn_decode(str: string, wordset_name?: 'english' | 'spanish' | '
  * @param {number} bits - Number of random bits to generate.  Must be a
  *   positive multiple of 32; typically `256` for a 32-byte seed.
  * @returns {string} Lowercase hex string of length `bits / 4`.
- * @throws {string} If `bits` is not a multiple of 32, or if the environment
+ * @throws {Error} If `bits` is not a multiple of 32, or if the environment
  *   does not support the Web Crypto API, or if random generation fails.
  */
 declare function mn_random(bits: number): string;

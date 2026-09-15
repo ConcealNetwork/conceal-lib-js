@@ -68,12 +68,22 @@ export function bintohex(bin) {
 }
 
 /**
- * @param {string} hex
- * @returns {string}
+ * Reverse the byte order of a hex string (little-endian ↔ big-endian).
+ *
+ * @param {string} hex - Even-length hex string.
+ * @returns {string} Byte-swapped hex string.
+ * @throws {TypeError} If `hex` is not a string.
+ * @throws {Error} If `hex` contains non-hex characters or has odd length.
  */
 export function swapEndian(hex) {
+  if (typeof hex !== "string") {
+    throw new TypeError("swapEndian expects a hex string");
+  }
+  if (!/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hex string");
+  }
   if (hex.length % 2 !== 0) {
-    return "length must be a multiple of 2!";
+    throw new Error("Hex string has invalid length!");
   }
   let data = "";
   for (let i = 1; i <= hex.length / 2; i++) {
@@ -95,27 +105,47 @@ export function swapEndianC(string) {
 }
 
 /**
- * @param {number | string} integer
- * @returns {string}
+ * Format a non-negative integer as 64-char lowercase hex (big-endian).
+ *
+ * @param {number | string} integer - Non-negative integer (pass large values as strings).
+ * @returns {string} 64-char lowercase hex.
+ * @throws {TypeError} If `integer` is not a number or decimal string.
+ * @throws {Error} If `integer` is negative or fractional, a number too large for exact formatting, or ≥ 2^256.
  */
 export function d2h(integer) {
-  if (typeof integer !== "string" && integer.toString().length > 15) {
+  if (typeof integer !== "number" && typeof integer !== "string") {
+    throw new TypeError("d2h expects a number or decimal string");
+  }
+  const integerStr = typeof integer === "number" ? integer.toString() : integer;
+  if (!/^\d+$/.test(integerStr)) {
+    throw new Error("d2h expects a non-negative integer");
+  }
+  if (typeof integer !== "string" && integerStr.length > 15) {
     throw new Error("integer should be entered as a string for precision");
   }
   let padding = "";
   for (let i = 0; i < 63; i++) {
     padding += "0";
   }
-  return (padding + new JSBigInt(integer).toString(16).toLowerCase()).slice(
-    -64,
-  );
+  const hex = new JSBigInt(integerStr).toString(16).toLowerCase();
+  if (hex.length > 64) {
+    throw new Error("value overflows 2^256!");
+  }
+  return (padding + hex).slice(-64);
 }
 
 /**
- * @param {number | string} integer
- * @returns {string}
+ * Format a non-negative integer as 64-char lowercase hex (little-endian).
+ *
+ * @param {number | string} integer - Non-negative integer (pass large values as strings).
+ * @returns {string} 64-char lowercase hex.
+ * @throws {TypeError} If `integer` is not a number or decimal string.
+ * @throws {Error} If `integer` is negative or fractional, a number too large for exact formatting, or ≥ 2^256.
  */
 export function d2s(integer) {
+  if (typeof integer !== "number" && typeof integer !== "string") {
+    throw new TypeError("d2s expects a number or decimal string");
+  }
   if (typeof integer === "string") {
     return swapEndian(d2h(integer));
   }
@@ -127,11 +157,18 @@ export function d2s(integer) {
  *
  * @param {string} hex - Exactly 16 hex characters (8 bytes, little-endian order).
  * @returns {number} Unsigned integer value of those 8 bytes.
- * @throws {Error} If `hex` is not a 16-character hex string.
+ * @throws {Error} If `hex` is not a 16-character hex string, or the value exceeds `Number.MAX_SAFE_INTEGER`.
  */
 export function h2d(hex) {
   if (typeof hex !== "string" || hex.length !== 16 || !valid_hex(hex)) {
     throw new Error("h2d expects a 16-character hex string");
+  }
+  // hex is little-endian; compare its byte-reversed value against MAX_SAFE_INTEGER
+  if (
+    BigInt(`0x${hex.match(/.{2}/g).reverse().join("")}`) >
+    BigInt(Number.MAX_SAFE_INTEGER)
+  ) {
+    throw new Error("h2d value exceeds Number.MAX_SAFE_INTEGER");
   }
   let vali = 0;
   for (let j = 7; j >= 0; j--) {
@@ -141,11 +178,21 @@ export function h2d(hex) {
 }
 
 /**
- * @param {number} integer
- * @returns {string}
+ * Format a non-negative integer as a 64-bit little-endian bit-string.
+ *
+ * @param {number | string} integer - Non-negative integer (pass large values as strings).
+ * @returns {string} 64-character bit-string.
+ * @throws {TypeError} If `integer` is not a number or decimal string.
+ * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting, or overflows uint64.
  */
 export function d2b(integer) {
-  const integerStr = integer.toString();
+  if (typeof integer !== "number" && typeof integer !== "string") {
+    throw new TypeError("d2b expects a number or decimal string");
+  }
+  const integerStr = typeof integer === "number" ? integer.toString() : integer;
+  if (!/^\d+$/.test(integerStr)) {
+    throw new Error("d2b expects a non-negative integer");
+  }
   if (typeof integer !== "string" && integerStr.length > 15) {
     throw new Error("integer should be entered as a string for precision");
   }
@@ -265,8 +312,23 @@ export function derivation_to_scalar(derivation, output_index) {
 /**
  * @param {number | string} i
  * @returns {import("./tiers/biginteger.js").JSBigInt}
+ * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
  */
 function requireNonNegativeVarint(i) {
+  if (i === undefined || i === null) {
+    throw new Error("varint input is required");
+  }
+  if (typeof i === "number") {
+    if (!Number.isInteger(i)) {
+      throw new Error("varint input must be an integer");
+    }
+  } else if (typeof i === "string") {
+    if (!/^\d+$/.test(i)) {
+      throw new Error("varint input must be a non-negative integer");
+    }
+  } else {
+    throw new Error("varint input must be a number or decimal string");
+  }
   const value = new JSBigInt(i);
   if (value.isNegative()) {
     throw new Error("varint cannot be negative");
@@ -279,7 +341,7 @@ function requireNonNegativeVarint(i) {
  *
  * @param {number | string} i - Non-negative integer (or decimal string).
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
  */
 export function encode_varint(i) {
   let j = requireNonNegativeVarint(i);
@@ -297,7 +359,7 @@ export function encode_varint(i) {
  *
  * @param {number | string} i - Non-negative integer (or decimal string).
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
  */
 export function encode_varint_term(i) {
   let value = requireNonNegativeVarint(i);
@@ -425,11 +487,21 @@ export function ge_double_scalarmult_postcomp_vartime(r, P, c, I) {
 }
 
 /**
- * @param {number | string} amount
- * @returns {import('./tiers/biginteger.js').JSBigInt[]}
+ * Decompose a non-negative integer amount into power-of-ten digit components.
+ *
+ * @param {number | string} amount - Non-negative integer (or decimal string).
+ * @returns {import('./tiers/biginteger.js').JSBigInt[]} Digit components, most significant first.
+ * @throws {TypeError} If `amount` is not a number or decimal string.
+ * @throws {Error} If `amount` is negative or fractional.
  */
 export function decompose_amount_into_digits(amount) {
-  amount = amount.toString();
+  if (typeof amount !== "number" && typeof amount !== "string") {
+    throw new TypeError("amount must be a number or decimal string");
+  }
+  amount = typeof amount === "number" ? amount.toString() : amount;
+  if (!/^\d+$/.test(amount)) {
+    throw new Error("amount must be a non-negative integer");
+  }
   const ret = [];
   while (amount.length > 0) {
     if (amount[0] !== "0") {

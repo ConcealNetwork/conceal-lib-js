@@ -22,6 +22,10 @@ export type TxExtra = {
      * - Payload bytes.
      */
     data: number[];
+    /**
+     * - True when the declared payload size exceeded the remaining bytes.
+     */
+    truncated?: boolean;
 };
 export type TxVout = {
     /**
@@ -97,6 +101,7 @@ export type ReceiveOutputChecks = {
  * @typedef {Object} TxExtra
  * @property {number} type - Extra field tag byte.
  * @property {number[]} data - Payload bytes.
+ * @property {boolean} [truncated] - True when the declared payload size exceeded the remaining bytes.
  */
 /**
  * @typedef {Object} TxVout
@@ -131,6 +136,9 @@ export type ReceiveOutputChecks = {
 /**
  * Parse transaction extra bytes into tagged chunks (CryptoNote tx_extra).
  *
+ * Never throws on malformed input: a chunk whose declared size exceeds the
+ * remaining bytes is returned clamped and flagged `truncated: true`.
+ *
  * @param {number[] | Uint8Array} oExtra - Raw extra field bytes.
  * @returns {TxExtra[]}
  */
@@ -145,6 +153,11 @@ export declare function extractTxPublicKey(extraHex: string): string | null;
 /**
  * Build flat derivation-index / on-chain-key lists for receive scanning.
  * Matches `TransactionsExplorer.ownsTx` vout index rules (type `"02"` vs `"03"`).
+ *
+ * Malformed output keys (not exactly 64 hex characters, case-insensitive) are silently
+ * skipped. `keyIndex` always advances for every key slot — valid or not — for
+ * both type `"02"` and `"03"`, matching the reference (`TransactionsExplorer`
+ * derives with `iOut` and iterates all keys unconditionally).
  *
  * @param {TxVout[]} vouts
  * @returns {ReceiveOutputChecks}
