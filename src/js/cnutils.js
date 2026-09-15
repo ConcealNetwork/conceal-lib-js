@@ -318,15 +318,20 @@ function requireNonNegativeVarint(i) {
   if (i === undefined || i === null) {
     throw new Error("varint input is required");
   }
-  if (typeof i === "number" && !Number.isInteger(i)) {
-    throw new Error("varint input must be an integer");
+  if (typeof i === "number") {
+    if (!Number.isInteger(i)) {
+      throw new Error("varint input must be an integer");
+    }
+  } else if (typeof i === "string") {
+    if (!/^\d+$/.test(i)) {
+      throw new Error("varint input must be a non-negative integer");
+    }
+  } else {
+    throw new Error("varint input must be a number or decimal string");
   }
   const value = new JSBigInt(i);
   if (value.isNegative()) {
     throw new Error("varint cannot be negative");
-  }
-  if (typeof i === "string" && !/^\d+$/.test(i)) {
-    throw new Error("varint input must be a non-negative integer");
   }
   return value;
 }

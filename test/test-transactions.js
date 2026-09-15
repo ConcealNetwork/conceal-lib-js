@@ -194,6 +194,33 @@ export async function runTransactionsTests(log) {
     log(`ownsTxBatch malformed-key check failed: ${e}`, false);
   }
 
+  // ── item 9: mixed [malformed, owned] in ONE tx — ownsTx and ownsTxBatch ──
+  // ── must agree; filter must live in the shared path, not batch-only       ──
+  try {
+    // Derive at index 1 (index 0 is the malformed slot; keyIndex still advances).
+    const derivedKey1 = derive_public_key(derivation, 1, walletKeys.pub);
+    const mixedTx = {
+      extraHex,
+      vouts: [
+        { type: "02", key: "zz".repeat(32) }, // malformed — skipped, keyIndex→1
+        { type: "02", key: derivedKey1 }, // valid at derivation index 1
+      ],
+    };
+    const ctx = {
+      viewSecretHex: walletKeys.sec,
+      spendPublicHex: walletKeys.pub,
+    };
+    const single = ownsTx(mixedTx, ctx);
+    const batch = ownsTxBatch([mixedTx], ctx);
+    const ok = single === true && batch[0] === true;
+    log(
+      `ownsTx/ownsTxBatch parity on mixed [bad, owned] vouts: ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
+  } catch (e) {
+    log(`ownsTx/ownsTxBatch mixed-key parity check failed: ${e}`, false);
+  }
+
   // ── parseTxExtra flags truncated declared size instead of silent cut ─────
   try {
     const truncated = parseTxExtra([TX_EXTRA_NONCE, 5, 0x41, 0x42]);

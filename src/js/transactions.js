@@ -171,6 +171,11 @@ export function extractTxPublicKey(extraHex) {
  * Build flat derivation-index / on-chain-key lists for receive scanning.
  * Matches `TransactionsExplorer.ownsTx` vout index rules (type `"02"` vs `"03"`).
  *
+ * Malformed output keys (not exactly 64 lowercase-hex characters) are silently
+ * skipped. `keyIndex` always advances for every key slot — valid or not — for
+ * both type `"02"` and `"03"`, matching the reference (`TransactionsExplorer`
+ * derives with `iOut` and iterates all keys unconditionally).
+ *
  * @param {TxVout[]} vouts
  * @returns {ReceiveOutputChecks}
  */
@@ -184,14 +189,19 @@ export function buildReceiveOutputChecks(vouts) {
   for (let iOut = 0; iOut < vouts.length; iOut++) {
     const out = vouts[iOut];
     if (out.type === "02" && typeof out.key === "string") {
-      indices.push(keyIndex);
-      keys.push(out.key);
-      keyIndex += 1;
+      if (/^[0-9a-fA-F]{64}$/.test(out.key)) {
+        indices.push(keyIndex);
+        keys.push(out.key);
+      }
+      keyIndex += 1; // advance even when key is skipped — index is positional
     } else if (out.type === "03" && Array.isArray(out.keys)) {
       for (let iKey = 0; iKey < out.keys.length; iKey++) {
-        indices.push(iOut);
-        keys.push(out.keys[iKey]);
-        keyIndex += 1;
+        const key = out.keys[iKey];
+        if (typeof key === "string" && /^[0-9a-fA-F]{64}$/.test(key)) {
+          indices.push(iOut);
+          keys.push(key);
+        }
+        keyIndex += 1; // advance for every slot, valid or not — matches reference (iOut-based derivation, all keys are positional)
       }
     }
   }
@@ -227,12 +237,8 @@ function buildBatchReceivePayload(txs) {
     }
     txPubHex.push(pub ?? "");
     const checks = buildReceiveOutputChecks(tx.vouts);
-    for (let i = 0; i < checks.keys.length; i++) {
-      if (/^[0-9a-fA-F]{64}$/.test(checks.keys[i])) {
-        indices.push(checks.indices[i]);
-        keys.push(checks.keys[i]);
-      }
-    }
+    indices.push(...checks.indices);
+    keys.push(...checks.keys);
     txOffsets.push(indices.length);
   }
 

@@ -154,6 +154,11 @@ export declare function extractTxPublicKey(extraHex: string): string | null;
  * Build flat derivation-index / on-chain-key lists for receive scanning.
  * Matches `TransactionsExplorer.ownsTx` vout index rules (type `"02"` vs `"03"`).
  *
+ * Malformed output keys (not exactly 64 lowercase-hex characters) are silently
+ * skipped. `keyIndex` always advances for every key slot — valid or not — for
+ * both type `"02"` and `"03"`, matching the reference (`TransactionsExplorer`
+ * derives with `iOut` and iterates all keys unconditionally).
+ *
  * @param {TxVout[]} vouts
  * @returns {ReceiveOutputChecks}
  */

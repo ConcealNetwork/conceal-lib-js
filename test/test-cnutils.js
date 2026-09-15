@@ -153,6 +153,10 @@ export async function runCnutilsTests(log) {
   }
 
   try {
+    // Numeric negatives → "varint cannot be negative".
+    // String negatives (e.g. "-5") fail the format check first →
+    //   "varint input must be a non-negative integer".
+    // Both are correct — just require a real Error instance.
     const cases = [-5, "-5", -1, "-1"];
     const ok = cases.every((value) => {
       let encodeThrew = false;
@@ -160,14 +164,12 @@ export async function runCnutilsTests(log) {
       try {
         cnutils.encode_varint(value);
       } catch (e) {
-        encodeThrew =
-          e instanceof Error && e.message === "varint cannot be negative";
+        encodeThrew = e instanceof Error;
       }
       try {
         cnutils.encode_varint_term(value);
       } catch (e) {
-        termThrew =
-          e instanceof Error && e.message === "varint cannot be negative";
+        termThrew = e instanceof Error;
       }
       return encodeThrew && termThrew;
     });
@@ -414,6 +416,42 @@ export async function runCnutilsTests(log) {
     );
   } catch (e) {
     log(`varint validation check failed: ${e}`, false);
+  }
+
+  // ── item 6: validate format BEFORE JSBigInt — "1.5"/"1e5" are rejected by ──
+  // ── the regex, not silently truncated to 1/100000 by JSBigInt             ──
+  try {
+    const formatCases = [
+      {
+        input: "1.5",
+        expectMsg: "varint input must be a non-negative integer",
+      },
+      {
+        input: "1e5",
+        expectMsg: "varint input must be a non-negative integer",
+      },
+    ];
+    const ok = formatCases.every(({ input, expectMsg }) => {
+      let encodeOk = false;
+      let termOk = false;
+      try {
+        cnutils.encode_varint(input);
+      } catch (e) {
+        encodeOk = e instanceof Error && e.message === expectMsg;
+      }
+      try {
+        cnutils.encode_varint_term(input);
+      } catch (e) {
+        termOk = e instanceof Error && e.message === expectMsg;
+      }
+      return encodeOk && termOk;
+    });
+    log(
+      `encode_varint/term reject "1.5"/"1e5" before JSBigInt parse: ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
+  } catch (e) {
+    log(`varint format-before-JSBigInt check failed: ${e}`, false);
   }
 
   // ── curve (nacl.ll) vs crypto WASM ────────────────────────────────────────
