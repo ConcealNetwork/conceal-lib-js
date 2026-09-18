@@ -221,6 +221,24 @@ export async function runTransactionsTests(log) {
     log(`ownsTx/ownsTxBatch mixed-key parity check failed: ${e}`, false);
   }
 
+  // ── buildReceiveOutputChecks key filter: uppercase kept, malformed skipped ──
+  try {
+    const checks = buildReceiveOutputChecks([
+      { type: "02", key: derivedKey0.toUpperCase() }, // uppercase — still valid hex
+      { type: "02", key: "zz".repeat(32) }, // malformed — skipped
+      { type: "02", key: "ab".repeat(31) }, // wrong length — skipped
+      { type: "02", key: 123 }, // not a string — skipped
+    ]);
+    const ok =
+      checks.keys.length === 1 &&
+      checks.keys[0] === derivedKey0.toUpperCase() &&
+      checks.indices.length === 1 &&
+      checks.indices[0] === 0;
+    log(`buildReceiveOutputChecks key filter: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`buildReceiveOutputChecks key filter check failed: ${e}`, false);
+  }
+
   // ── parseTxExtra flags truncated declared size instead of silent cut ─────
   try {
     const truncated = parseTxExtra([TX_EXTRA_NONCE, 5, 0x41, 0x42]);

@@ -9,12 +9,14 @@
 
 import { scan_receive_outputs, scan_receive_outputs_batch } from "#crypto-wasm";
 import {
+  assertHex,
+  assertHexLen,
   bintohex,
   cn_fast_hash,
   encode_varint,
   encode_varint_term,
   hextobin,
-  valid_hex,
+  isHexLen,
 } from "./cnutils.js";
 
 export const TX_EXTRA_TAG_PADDING = 0x00;
@@ -190,7 +192,7 @@ export function buildReceiveOutputChecks(vouts) {
   for (let iOut = 0; iOut < vouts.length; iOut++) {
     const out = vouts[iOut];
     if (out.type === "02" && typeof out.key === "string") {
-      if (/^[0-9a-fA-F]{64}$/.test(out.key)) {
+      if (isHexLen(out.key, 64)) {
         indices.push(keyIndex);
         keys.push(out.key);
       }
@@ -198,7 +200,7 @@ export function buildReceiveOutputChecks(vouts) {
     } else if (out.type === "03" && Array.isArray(out.keys)) {
       for (let iKey = 0; iKey < out.keys.length; iKey++) {
         const key = out.keys[iKey];
-        if (typeof key === "string" && /^[0-9a-fA-F]{64}$/.test(key)) {
+        if (isHexLen(key, 64)) {
           indices.push(iOut);
           keys.push(key);
         }
@@ -460,18 +462,6 @@ export function ownsTxBatch(txs, ctx) {
  */
 
 /**
- * @param {unknown} hex
- * @param {number} length
- * @param {string} label
- * @returns {void}
- */
-function assertHexLen(hex, length, label) {
-  if (typeof hex !== "string" || hex.length !== length || !valid_hex(hex)) {
-    throw new Error(label);
-  }
-}
-
-/**
  * Serialize a CryptoNote transaction to broadcast-ready hex (non-RingCT / plain
  * ring-signature path only). Ported byte-for-byte from `CnTransactions.serialize_tx`
  * in conceal-web-wallet's `Cn.ts`.
@@ -557,11 +547,8 @@ export function serializeTransaction(tx, headerOnly = false) {
   // Must be an EVEN-length hex string: valid_hex only checks the alphabet, so an
   // odd-length extra would make `extra.length / 2` fractional and silently
   // corrupt the byte count + append a half-byte. Also guards against undefined.
-  if (
-    typeof tx.extra !== "string" ||
-    !valid_hex(tx.extra) ||
-    tx.extra.length % 2 !== 0
-  ) {
+  assertHex(tx.extra, "Tx extra must be an even-length hex string");
+  if (tx.extra.length % 2 !== 0) {
     throw new Error("Tx extra must be an even-length hex string");
   }
 
