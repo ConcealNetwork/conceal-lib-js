@@ -14,7 +14,7 @@
  */
 
 import * as base58 from "./base58.js";
-import { cn_fast_hash, encode_varint, valid_hex } from "./cnutils.js";
+import { cn_fast_hash, encode_varint, isHexLen } from "./cnutils.js";
 
 /** CCX mainnet public address prefix. */
 export const ADDRESS_PREFIX = 0x7ad4;
@@ -37,7 +37,7 @@ const INTEGRATED_ID_HEX_LENGTH = INTEGRATED_ID_SIZE * 2;
  * @returns {void}
  */
 function assertHex(hex, length, label) {
-  if (typeof hex !== "string" || hex.length !== length || !valid_hex(hex)) {
+  if (!isHexLen(hex, length)) {
     throw new Error(`${label} must be a ${length}-char hex string`);
   }
 }

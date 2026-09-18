@@ -109,10 +109,51 @@ export declare function ge_sub(point1: string, point2: string): string;
  */
 export declare function sec_key_to_pub(sec: string): string;
 /**
- * @param {string} hex
+ * Whether `hex` is a string consisting only of hex characters (`""` is valid).
+ *
+ * @param {unknown} hex
  * @returns {boolean}
  */
-export declare function valid_hex(hex: string): boolean;
+export declare function valid_hex(hex: unknown): boolean;
+/**
+ * Shared hex guard: throw unless `hex` is a string of hex characters.
+ *
+ * @param {unknown} hex
+ * @param {string} [message]
+ * @returns {void}
+ * @throws {Error} If `hex` is not a string or contains non-hex characters.
+ */
+export declare function assertHex(hex: unknown, message?: string): void;
+/**
+ * Whether `hex` is a hex string of exactly `length` characters.
+ *
+ * @param {unknown} hex
+ * @param {number} length
+ * @returns {boolean}
+ */
+export declare function isHexLen(hex: unknown, length: number): boolean;
+/**
+ * Shared fixed-length hex guard: throw with `label` unless `hex` is a hex
+ * string of exactly `length` characters.
+ *
+ * @param {unknown} hex
+ * @param {number} length
+ * @param {string} label
+ * @returns {void}
+ * @throws {Error} If `hex` is not a string, contains non-hex characters, or has a length other than `length`.
+ */
+export declare function assertHexLen(hex: unknown, length: number, label: string): void;
+/**
+ * Shared guard for number-or-decimal-string non-negative integer inputs.
+ *
+ * @param {unknown} value
+ * @param {string} typeMessage - Error message when `value` is neither a number nor a string.
+ * @param {string} negativeMessage - Error message when the value does not match `/^\d+$/`.
+ * @returns {string} Canonical decimal string form of `value`.
+ * @throws {TypeError} If `value` is not a number or string.
+ * @throws {Error} If `value` is negative or fractional.
+ */
+export declare function assertNonNegativeInteger(value: unknown, typeMessage: string, negativeMessage: string): string;
 /**
  * @param {string} sec
  * @returns {string}
