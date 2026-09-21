@@ -52,12 +52,12 @@ pub(crate) fn argon2id_hex(
             ));
         }
 
-        if parallelism < 1 || parallelism > MAX_PARALLELISM {
+        if !(1..=MAX_PARALLELISM).contains(&parallelism) {
             return Err(format!(
                 "invalid parallelism: {parallelism} (allowed 1..={MAX_PARALLELISM})"
             ));
         }
-        if iterations < 1 || iterations > MAX_TIME_COST {
+        if !(1..=MAX_TIME_COST).contains(&iterations) {
             return Err(format!(
                 "invalid iterations: {iterations} (allowed 1..={MAX_TIME_COST})"
             ));
@@ -66,7 +66,7 @@ pub(crate) fn argon2id_hex(
         let min_m = parallelism
             .checked_mul(8)
             .ok_or_else(|| "parallelism overflow computing minimum memory".to_string())?;
-        if memory_kib < min_m || memory_kib > MAX_MEMORY_KIB {
+        if !(min_m..=MAX_MEMORY_KIB).contains(&memory_kib) {
             return Err(format!(
                 "invalid memory_kib: {memory_kib} (allowed {min_m}..={MAX_MEMORY_KIB} for p={parallelism})"
             ));
