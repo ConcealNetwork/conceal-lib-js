@@ -2,6 +2,35 @@
 /* eslint-disable */
 
 /**
+ * Derive a 32-byte key with Argon2id v0x13 (Argon2 v1.3).
+ *
+ * Low-level **byte-oriented** primitive: `password_hex` and `salt_hex` are
+ * hex encodings of raw bytes. UTF-8 encoding of passwords is the caller's
+ * responsibility (avoids Unicode ambiguity inside the library).
+ *
+ * - `memory_kib` — memory cost in **kibibytes** (KiB)
+ * - `iterations` — time cost (passes)
+ * - `parallelism` — lane count (`p`); without WASM threads, lanes run sequentially
+ *
+ * Returns 64 lowercase hex characters (32 bytes). Does not accept a variable
+ * output length.
+ *
+ * Memory-hard; when invoked from a UI thread, run in a Worker (or equivalent
+ * background context). Does not require SharedArrayBuffer or WASM threads.
+ *
+ * # Errors
+ *
+ * Malformed hex, out-of-range parameters, or Argon2 failures. Parameters are
+ * never silently clamped.
+ *
+ * # See also
+ *
+ * - [RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html)
+ * - Project README (Argon2id / Worker guidance)
+ */
+export function argon2id(password_hex: string, salt_hex: string, memory_kib: number, iterations: number, parallelism: number): string;
+
+/**
  * Verifies a ring signature.
  *
  * Port of `crypto::check_ring_signature`.

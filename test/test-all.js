@@ -1,5 +1,6 @@
 import { renderBenchmarkResults, runBenchmarks } from "./benchmark.js";
 import { runAddressTests } from "./test-address.js";
+import { runArgon2idTests } from "./test-argon2id.js";
 import { runCnTests } from "./test-cn.js";
 import { runCnutilsTests } from "./test-cnutils.js";
 import { runCryptoTests } from "./test-crypto.js";
@@ -17,6 +18,7 @@ const SUITES = [
   { name: "cn", run: runCnTests },
   { name: "cypher", run: runCypherTests },
   { name: "secretbox", run: runSecretboxTests },
+  { name: "argon2id", run: runArgon2idTests },
 ];
 
 async function runAll() {

@@ -9,8 +9,9 @@
  *   ~2.8× faster than the Rust WASM build for string-heavy mnemonic operations.
  *
  * - **`crypto`** — Keccak-256, EC scalar/point operations, key derivation,
- *   and address encoding/decoding.  All functions match the names used in
- *   `conceal-web-wallet/src/model/Cn.ts`.  Compiled from Rust to WASM.
+ *   Argon2id (RFC 9106), and address encoding/decoding.  All functions match
+ *   the names used in `conceal-web-wallet/src/model/Cn.ts` where applicable.
+ *   Compiled from Rust to WASM.
  *
  * - **`cnutils`** — hex/scalar helpers and curve utilities from `CnUtils` in
  *   `conceal-web-wallet/src/model/Cn.ts` (JS + nacl.ll + WASM hash/scalar ops).

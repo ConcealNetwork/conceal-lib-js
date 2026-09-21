@@ -1,0 +1,5 @@
+{
+  "change": "argon2id-kdf",
+  "notApplicable": "Synchronous npm library KDF export with no async producer/consumer or job queue; correctness is proven by the dedicated Node test suite (test/test-argon2id.js via npm test).",
+  "rows": []
+}

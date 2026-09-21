@@ -17,3 +17,5 @@ tiny-keccak = { version = "2", features = ["keccak"] }
 curve25519-dalek = { version = "4", features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
+argon2 = { version = "0.6.0", default-features = false, features = ["alloc", "zeroize"] }
+zeroize = { version = "1", default-features = false, features = ["alloc"] }

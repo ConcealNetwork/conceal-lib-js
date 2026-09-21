@@ -5,3 +5,13 @@
 /pages-dist
 
 *.tgz
+
+# AI generated files
+# Local / agent scratch
+.tmp/
+.forge/sessions/
+.forge/active.json
+.forge/preferences.local.json
+.forge/models.local.json
+.forge/sessions.jsonl
+.forge/scorecards.jsonl

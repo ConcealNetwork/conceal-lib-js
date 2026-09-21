@@ -35,6 +35,7 @@ export const scan_receive_outputs: (a: number, b: number, c: number, d: number, 
 export const scan_receive_outputs_batch: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number, number];
 export const ge_tobytes: (a: number, b: number) => [number, number, number, number];
 export const hash_to_ec32: (a: number, b: number) => [number, number, number, number];
+export const argon2id: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_exn_store: (a: number) => void;

@@ -1,0 +1,85 @@
+<!-- forge-brief-specs-hash:0afd9d722fc72946 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Argon2id KDF — operator brief</title>
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.5; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.15rem; margin-top: 1.75rem; }
+    ul { padding-left: 1.25rem; }
+    code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.92em; }
+    .note { color: #444; font-size: 0.95rem; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true });</script>
+</head>
+<body>
+  <h1>Argon2id key derivation</h1>
+
+  <h2>TL;DR</h2>
+  <p>
+    After this change, apps can derive a 32-byte key from a password using Argon2id
+    (the modern password-hashing standard) through the existing <code>crypto</code> API —
+    same style as the other WASM crypto functions (hex in, hex out).
+    This is the building block wallet software will need later for stronger encrypted wallets;
+    envelopes and password rules are <strong>not</strong> part of this change.
+  </p>
+
+  <h2>What you'll get</h2>
+  <ul>
+    <li>A new call: <code>crypto.argon2id(passwordHex, saltHex, memoryKiB, iterations, parallelism)</code></li>
+    <li>Always returns a 32-byte key as 64 lowercase hex characters</li>
+    <li>Works in Node/bundler immediately, and in the browser after <code>init()</code></li>
+    <li>Safe limits for in-browser WASM (up to 64&nbsp;MiB memory) covering the planned wallet profiles</li>
+    <li>Tests against known-good Argon2id answers, plus rejection of bad inputs</li>
+  </ul>
+
+  <h2>How it works</h2>
+  <p>
+    Password and salt are passed as hex-encoded bytes (the app encodes UTF-8 itself —
+    no Unicode surprises inside the library). Rust runs Argon2id v1.3 via the maintained
+    RustCrypto crate, compiled into the existing crypto WASM module. No CDN, no threads,
+    no SharedArrayBuffer.
+  </p>
+  <pre class="mermaid">
+flowchart LR
+  App["App / wallet-sdk"] -->|"hex password + salt + costs"| Crypto["crypto.argon2id"]
+  Crypto --> WASM["Rust Argon2id in WASM"]
+  WASM -->|"64 hex chars"| App
+  </pre>
+
+  <h2>What changes for you</h2>
+  <ul>
+    <li>New optional API on <code>crypto</code> — existing calls stay the same</li>
+    <li>In a UI, prefer running heavy Argon2 calls in a Worker so the page stays responsive</li>
+    <li>Rebuild WASM after Rust edits as usual (<code>npm run build</code>)</li>
+  </ul>
+
+  <h2>Risks and open questions</h2>
+  <ul>
+    <li>64&nbsp;MiB is a deliberate browser-friendly cap; the RFC’s multi-GiB profiles are out of scope</li>
+    <li>Memory-hard hashing can still hitch the main thread if not offloaded to a Worker</li>
+    <li>Exactly-16-byte salts remain a wallet-envelope rule, not enforced here (primitive allows 8–64)</li>
+  </ul>
+
+  <h2>Out of scope</h2>
+  <ul>
+    <li>Wallet envelope format / migration</li>
+    <li>Password policy or UI</li>
+    <li>Changes to secretbox</li>
+    <li>Custom Conceal/CryptoNight password KDF</li>
+  </ul>
+
+  <h2>Work overview</h2>
+  <ul>
+    <li>Rust Argon2id primitive (3 tasks)</li>
+    <li>WASM rebuild, declarations, README (3 tasks)</li>
+    <li>Test suite + quality gate (3 tasks)</li>
+  </ul>
+
+  <p class="note">Open with <code>forge brief open</code>. Approve before implementation starts.</p>
+</body>
+</html>
