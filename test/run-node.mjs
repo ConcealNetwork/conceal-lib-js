@@ -40,6 +40,7 @@ const SUITES = [
   { name: "cn", run: () => import("./test-cn.js").then((m) => m.runCnTests) },
   { name: "cypher", run: () => import("./test-cypher.js").then((m) => m.runCypherTests) },
   { name: "secretbox", run: () => import("./test-secretbox.js").then((m) => m.runSecretboxTests) },
+  { name: "argon2id", run: () => import("./test-argon2id.js").then((m) => m.runArgon2idTests) },
 ];
 
 let totalPassed = 0;

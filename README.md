@@ -261,6 +261,17 @@ Exported constants: `ADDRESS_PREFIX` (`0x7ad4`), `INTEGRATED_ADDRESS_PREFIX` (`0
 | `cn_fast_hash(data_hex)` | hex string (any length) | 64-char hex (Keccak-256) | `hash-ops.h: cn_fast_hash` |
 | `hash_to_scalar(data_hex)` | hex string (any length) | 64-char hex scalar | `cn_fast_hash` then `sc_reduce32` |
 
+#### Key derivation (Argon2id)
+
+> Low-level **byte-oriented** Argon2id ([RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html)) via RustCrypto.
+> Password/salt are hex-encoded bytes — UTF-8 encoding is the caller’s job.
+> Memory-hard; from a UI, run in a **Worker** (or equivalent). No WASM threads / SharedArrayBuffer.
+> 64&nbsp;MiB memory cap is a wasm policy limit (covers wallet profiles 19/32/64&nbsp;MiB); not full RFC 2&nbsp;GiB.
+
+| Function | Parameters | Returns | Notes |
+|---|---|---|---|
+| `argon2id(passwordHex, saltHex, memoryKiB, iterations, parallelism)` | hex password; hex salt (8–64 bytes); memory **KiB** (`8×p`…`65536`); iterations `1…64`; parallelism `1…4` | 64-char lowercase hex (32 bytes) | Argon2id v0x13; fixed 32-byte output; rejects invalid params (no silent clamp) |
+
 #### Scalar arithmetic (`crypto-ops.h`)
 
 All scalars are 64-char hex (32-byte little-endian integers mod Ed25519 group order *l*).
@@ -480,7 +491,7 @@ cargo test --workspace   # 33 tests: 16 crypto + 10 cypher + 7 mnemonic
 
 ## JS integration tests
 
-Browser suite (`test/`): mnemonic, **cnutils**, crypto, transactions, **address**, **cn**, cypher, **secretbox**.
+Browser suite (`test/`): mnemonic, **cnutils**, crypto, transactions, **address**, **cn**, cypher, **secretbox**, **argon2id**.
 
 ```sh
 npm run build              # src/wasm for cnutils + package consumers

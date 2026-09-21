@@ -1,0 +1,10 @@
+{
+  "plan": {
+    "engine": "openspec"
+  },
+  "adr": {
+    "enabled": false,
+    "dir": "docs/adr",
+    "decisionsDoc": "docs/decisions.md"
+  }
+}

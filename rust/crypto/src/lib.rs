@@ -16,9 +16,11 @@
 //! | `signature` | `generate_signature`, `generate_ring_signature`, `check_tx_proof` |
 //! | `address` | `create_address`, `encode_address`, `encode_integrated_address`, `decode_address` |
 //! | `base58` | CryptoNote Base58 encode/decode |
+//! | `argon2id` | Argon2id KDF (RFC 9106), hex in / hex out |
 //! | `utils` | hex conversion helpers |
 
 mod address;
+mod argon2id;
 mod base58;
 mod ffi;
 mod ge;

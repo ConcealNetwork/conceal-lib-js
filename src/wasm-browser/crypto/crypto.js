@@ -1,6 +1,62 @@
 /* @ts-self-types="./crypto.d.ts" */
 
 /**
+ * Derive a 32-byte key with Argon2id v0x13 (Argon2 v1.3).
+ *
+ * Low-level **byte-oriented** primitive: `password_hex` and `salt_hex` are
+ * hex encodings of raw bytes. UTF-8 encoding of passwords is the caller's
+ * responsibility (avoids Unicode ambiguity inside the library).
+ *
+ * - `memory_kib` — memory cost in **kibibytes** (KiB)
+ * - `iterations` — time cost (passes)
+ * - `parallelism` — lane count (`p`); without WASM threads, lanes run sequentially
+ *
+ * Returns 64 lowercase hex characters (32 bytes). Does not accept a variable
+ * output length.
+ *
+ * Memory-hard; when invoked from a UI thread, run in a Worker (or equivalent
+ * background context). Does not require SharedArrayBuffer or WASM threads.
+ *
+ * # Errors
+ *
+ * Malformed hex, out-of-range parameters, or Argon2 failures. Parameters are
+ * never silently clamped.
+ *
+ * # See also
+ *
+ * - [RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html)
+ * - Project README (Argon2id / Worker guidance)
+ * @param {string} password_hex
+ * @param {string} salt_hex
+ * @param {number} memory_kib
+ * @param {number} iterations
+ * @param {number} parallelism
+ * @returns {string}
+ */
+export function argon2id(password_hex, salt_hex, memory_kib, iterations, parallelism) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(password_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(salt_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.argon2id(ptr0, len0, ptr1, len1, memory_kib, iterations, parallelism);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
  * Verifies a ring signature.
  *
  * Port of `crypto::check_ring_signature`.
