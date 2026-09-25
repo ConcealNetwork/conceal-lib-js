@@ -475,6 +475,136 @@ export async function runCnutilsTests(log) {
     log(`varint format-before-JSBigInt check failed: ${e}`, false);
   }
 
+  // ── shared guards: assertHex / isHexLen / assertHexLen ────────────────────
+  try {
+    let validOk = false;
+    try {
+      cnutils.assertHex("");
+      cnutils.assertHex("aabbCC");
+      cnutils.assertHex("0".repeat(64));
+      validOk = true;
+    } catch {}
+
+    let defaultMessage = false;
+    try {
+      cnutils.assertHex("aazz");
+    } catch (e) {
+      defaultMessage =
+        e instanceof Error &&
+        !(e instanceof TypeError) &&
+        e.message === "Invalid hex string";
+    }
+
+    let nonString = false;
+    try {
+      cnutils.assertHex(123);
+    } catch (e) {
+      nonString = e instanceof Error && e.message === "Invalid hex string";
+    }
+
+    let customMessage = false;
+    try {
+      cnutils.assertHex("zz", "custom hex failure");
+    } catch (e) {
+      customMessage = e instanceof Error && e.message === "custom hex failure";
+    }
+
+    const isHexLenOk =
+      cnutils.isHexLen("ab".repeat(32), 64) &&
+      !cnutils.isHexLen("ab".repeat(31), 64) &&
+      !cnutils.isHexLen("zz".repeat(32), 64) &&
+      !cnutils.isHexLen(null, 64) &&
+      !cnutils.isHexLen(undefined, 16) &&
+      cnutils.isHexLen("0100000000000000", 16);
+
+    let lenLabel = false;
+    try {
+      cnutils.assertHexLen("zz".repeat(32), 64, "expected 64 char hex string");
+    } catch (e) {
+      lenLabel =
+        e instanceof Error && e.message === "expected 64 char hex string";
+    }
+    let lenPass = false;
+    try {
+      cnutils.assertHexLen("ab".repeat(32), 64, "should not throw");
+      cnutils.assertHexLen("0123abcd", 8, "should not throw");
+      lenPass = true;
+    } catch {}
+
+    const ok =
+      validOk &&
+      defaultMessage &&
+      nonString &&
+      customMessage &&
+      isHexLenOk &&
+      lenLabel &&
+      lenPass;
+    log(
+      `assertHex / isHexLen / assertHexLen guards: ${ok ? "PASS" : "FAIL"}`,
+      ok,
+    );
+  } catch (e) {
+    log(`shared hex guard check failed: ${e}`, false);
+  }
+
+  // ── shared guards: assertNonNegativeInteger ───────────────────────────────
+  try {
+    const canonicalOk =
+      cnutils.assertNonNegativeInteger(5, "t", "n") === "5" &&
+      cnutils.assertNonNegativeInteger("5", "t", "n") === "5" &&
+      cnutils.assertNonNegativeInteger(0, "t", "n") === "0" &&
+      cnutils.assertNonNegativeInteger(
+        "123456789012345678901234567890",
+        "t",
+        "n",
+      ) === "123456789012345678901234567890";
+
+    let typeMsg = false;
+    try {
+      cnutils.assertNonNegativeInteger(
+        null,
+        "type failure",
+        "negative failure",
+      );
+    } catch (e) {
+      typeMsg = e instanceof TypeError && e.message === "type failure";
+    }
+
+    const negativeCases = [-1, "-1", "1.5", "1e5", "abc", ""];
+    const negativeOk = negativeCases.every((value) => {
+      try {
+        cnutils.assertNonNegativeInteger(
+          value,
+          "type failure",
+          "negative failure",
+        );
+        return false;
+      } catch (e) {
+        return (
+          e instanceof Error &&
+          !(e instanceof TypeError) &&
+          e.message === "negative failure"
+        );
+      }
+    });
+
+    const ok = canonicalOk && typeMsg && negativeOk;
+    log(`assertNonNegativeInteger guard: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`shared integer guard check failed: ${e}`, false);
+  }
+
+  // ── valid_hex edge cases: empty string valid, non-string false ────────────
+  try {
+    const ok =
+      cnutils.valid_hex("") === true &&
+      cnutils.valid_hex(123) === false &&
+      cnutils.valid_hex(null) === false;
+    log(`valid_hex edge cases (empty/non-string): ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`valid_hex edge-case check failed: ${e}`, false);
+  }
+
   // ── curve (nacl.ll) vs crypto WASM ────────────────────────────────────────
   try {
     const reduced = wasmCrypto.sc_reduce32(SEED);
