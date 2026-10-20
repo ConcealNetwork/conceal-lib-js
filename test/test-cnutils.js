@@ -136,6 +136,85 @@ export async function runCnutilsTests(log) {
 
   try {
     const ok =
+      cnutils.valid_hex("") === true &&
+      cnutils.valid_hex("ABCdef09") === true &&
+      cnutils.valid_hex(" ab") === false &&
+      cnutils.valid_hex(123) === false &&
+      cnutils.valid_hex(null) === false &&
+      cnutils.valid_hex(undefined) === false;
+    log(`valid_hex edge cases (empty/non-string): ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`valid_hex edge-case check failed: ${e}`, false);
+  }
+
+  // ── shared integer guard keeps per-function error types and messages ────
+  try {
+    const expectThrow = (fn, Type, message) => {
+      try {
+        fn();
+        return false;
+      } catch (e) {
+        return (
+          e instanceof Type &&
+          (Type !== Error || !(e instanceof TypeError)) &&
+          e.message === message
+        );
+      }
+    };
+    const ok =
+      expectThrow(
+        () => cnutils.d2h(null),
+        TypeError,
+        "d2h expects a number or decimal string",
+      ) &&
+      expectThrow(
+        () => cnutils.d2h(-1),
+        Error,
+        "d2h expects a non-negative integer",
+      ) &&
+      expectThrow(
+        () => cnutils.d2b({}),
+        TypeError,
+        "d2b expects a number or decimal string",
+      ) &&
+      expectThrow(
+        () => cnutils.d2b("2.5"),
+        Error,
+        "d2b expects a non-negative integer",
+      ) &&
+      expectThrow(
+        () => cnutils.decompose_amount_into_digits(undefined),
+        TypeError,
+        "amount must be a number or decimal string",
+      ) &&
+      expectThrow(
+        () => cnutils.decompose_amount_into_digits("-123"),
+        Error,
+        "amount must be a non-negative integer",
+      ) &&
+      expectThrow(
+        () => cnutils.h2d(1234),
+        Error,
+        "h2d expects a 16-character hex string",
+      ) &&
+      expectThrow(
+        () => cnutils.ge_neg(null),
+        Error,
+        "expected 64 char hex string",
+      ) &&
+      expectThrow(() => cnutils.hextobin(42), Error, "Invalid hex string");
+    log(
+      `shared hex/integer guards keep error types and messages: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`shared guard message check failed: ${e}`, false);
+  }
+
+  try {
+    const ok =
       cnutils.hex_xor("ff00", "0f0f") === "f00f" &&
       cnutils.hex_xor("aa", "aa") === "00";
     log(`hex_xor: ${ok ? "PASS" : "FAIL"}`, ok);

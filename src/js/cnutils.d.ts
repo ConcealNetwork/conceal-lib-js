@@ -109,10 +109,13 @@ export declare function ge_sub(point1: string, point2: string): string;
  */
 export declare function sec_key_to_pub(sec: string): string;
 /**
- * @param {string} hex
- * @returns {boolean}
+ * Whether `hex` is a string made only of hex characters (case-insensitive).
+ * The empty string is valid. Does not check length parity.
+ *
+ * @param {unknown} hex
+ * @returns {boolean} `false` for non-strings.
  */
-export declare function valid_hex(hex: string): boolean;
+export declare function valid_hex(hex: unknown): boolean;
 /**
  * @param {string} sec
  * @returns {string}

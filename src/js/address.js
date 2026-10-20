@@ -37,7 +37,7 @@ const INTEGRATED_ID_HEX_LENGTH = INTEGRATED_ID_SIZE * 2;
  * @returns {void}
  */
 function assertHex(hex, length, label) {
-  if (typeof hex !== "string" || hex.length !== length || !valid_hex(hex)) {
+  if (!valid_hex(hex) || hex.length !== length) {
     throw new Error(`${label} must be a ${length}-char hex string`);
   }
 }

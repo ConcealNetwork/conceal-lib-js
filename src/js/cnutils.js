@@ -30,6 +30,42 @@ export const STRUCT_SIZES = Object.freeze({
   SIGNATURE: 64,
 });
 
+const HEX_RE = /^[0-9a-fA-F]*$/;
+const DECIMAL_INT_RE = /^\d+$/;
+
+/**
+ * @param {unknown} hex
+ * @param {number} length
+ * @param {string} message
+ * @returns {void}
+ * @throws {Error} With `message` unless `hex` is a `length`-char hex string.
+ */
+function requireHexLen(hex, length, message) {
+  if (!valid_hex(hex) || hex.length !== length) {
+    throw new Error(message);
+  }
+}
+
+/**
+ * Canonical decimal string of a non-negative integer given as number or string.
+ *
+ * @param {unknown} value
+ * @param {string} prefix - Error prefix, e.g. `"d2h expects"`.
+ * @returns {string}
+ * @throws {TypeError} `${prefix} a number or decimal string` if not a number/string.
+ * @throws {Error} `${prefix} a non-negative integer` if negative, fractional, or not plain decimal.
+ */
+function requireDecimalString(value, prefix) {
+  if (typeof value !== "number" && typeof value !== "string") {
+    throw new TypeError(`${prefix} a number or decimal string`);
+  }
+  const str = typeof value === "number" ? value.toString() : value;
+  if (!DECIMAL_INT_RE.test(str)) {
+    throw new Error(`${prefix} a non-negative integer`);
+  }
+  return str;
+}
+
 /**
  * Decode a validated hex string to bytes.
  *
@@ -38,7 +74,7 @@ export const STRUCT_SIZES = Object.freeze({
  * @throws {Error} If `hex` is not a string, contains non-hex characters, or has odd length.
  */
 export function hextobin(hex) {
-  if (typeof hex !== "string" || !/^[0-9a-fA-F]*$/.test(hex)) {
+  if (!valid_hex(hex)) {
     throw new Error("Invalid hex string");
   }
   if (hex.length % 2 !== 0) throw new Error("Hex string has invalid length!");
@@ -79,7 +115,7 @@ export function swapEndian(hex) {
   if (typeof hex !== "string") {
     throw new TypeError("swapEndian expects a hex string");
   }
-  if (!/^[0-9a-fA-F]*$/.test(hex)) {
+  if (!valid_hex(hex)) {
     throw new Error("Invalid hex string");
   }
   if (hex.length % 2 !== 0) {
@@ -113,13 +149,7 @@ export function swapEndianC(string) {
  * @throws {Error} If `integer` is negative or fractional, a number too large for exact formatting, or ≥ 2^256.
  */
 export function d2h(integer) {
-  if (typeof integer !== "number" && typeof integer !== "string") {
-    throw new TypeError("d2h expects a number or decimal string");
-  }
-  const integerStr = typeof integer === "number" ? integer.toString() : integer;
-  if (!/^\d+$/.test(integerStr)) {
-    throw new Error("d2h expects a non-negative integer");
-  }
+  const integerStr = requireDecimalString(integer, "d2h expects");
   if (typeof integer !== "string" && integerStr.length > 15) {
     throw new Error("integer should be entered as a string for precision");
   }
@@ -160,9 +190,7 @@ export function d2s(integer) {
  * @throws {Error} If `hex` is not a 16-character hex string, or the value exceeds `Number.MAX_SAFE_INTEGER`.
  */
 export function h2d(hex) {
-  if (typeof hex !== "string" || hex.length !== 16 || !valid_hex(hex)) {
-    throw new Error("h2d expects a 16-character hex string");
-  }
+  requireHexLen(hex, 16, "h2d expects a 16-character hex string");
   // hex is little-endian; compare its byte-reversed value against MAX_SAFE_INTEGER
   if (
     BigInt(`0x${hex.match(/.{2}/g).reverse().join("")}`) >
@@ -186,13 +214,7 @@ export function h2d(hex) {
  * @throws {Error} If `integer` is negative or fractional, or a number too large for exact formatting, or overflows uint64.
  */
 export function d2b(integer) {
-  if (typeof integer !== "number" && typeof integer !== "string") {
-    throw new TypeError("d2b expects a number or decimal string");
-  }
-  const integerStr = typeof integer === "number" ? integer.toString() : integer;
-  if (!/^\d+$/.test(integerStr)) {
-    throw new Error("d2b expects a non-negative integer");
-  }
+  const integerStr = requireDecimalString(integer, "d2b expects");
   if (typeof integer !== "string" && integerStr.length > 15) {
     throw new Error("integer should be entered as a string for precision");
   }
@@ -240,9 +262,7 @@ export function ge_add(p1, p2) {
  * @throws {Error} If `point` is not a 64-character hex string.
  */
 export function ge_neg(point) {
-  if (typeof point !== "string" || point.length !== 64 || !valid_hex(point)) {
-    throw new Error("expected 64 char hex string");
-  }
+  requireHexLen(point, 64, "expected 64 char hex string");
   return (
     point.slice(0, 62) +
     ((Number.parseInt(point.slice(62, 63), 16) + 8) % 16).toString(16) +
@@ -274,12 +294,14 @@ export function sec_key_to_pub(sec) {
 }
 
 /**
- * @param {string} hex
- * @returns {boolean}
+ * Whether `hex` is a string made only of hex characters (case-insensitive).
+ * The empty string is valid. Does not check length parity.
+ *
+ * @param {unknown} hex
+ * @returns {boolean} `false` for non-strings.
  */
 export function valid_hex(hex) {
-  const exp = new RegExp(`[0-9a-fA-F]{${hex.length}}`);
-  return exp.test(hex);
+  return typeof hex === "string" && HEX_RE.test(hex);
 }
 
 /**
@@ -323,7 +345,7 @@ function requireNonNegativeVarint(i) {
       throw new Error("varint input must be an integer");
     }
   } else if (typeof i === "string") {
-    if (!/^\d+$/.test(i)) {
+    if (!DECIMAL_INT_RE.test(i)) {
       throw new Error("varint input must be a non-negative integer");
     }
   } else {
@@ -495,13 +517,7 @@ export function ge_double_scalarmult_postcomp_vartime(r, P, c, I) {
  * @throws {Error} If `amount` is negative or fractional.
  */
 export function decompose_amount_into_digits(amount) {
-  if (typeof amount !== "number" && typeof amount !== "string") {
-    throw new TypeError("amount must be a number or decimal string");
-  }
-  amount = typeof amount === "number" ? amount.toString() : amount;
-  if (!/^\d+$/.test(amount)) {
-    throw new Error("amount must be a non-negative integer");
-  }
+  amount = requireDecimalString(amount, "amount must be");
   const ret = [];
   while (amount.length > 0) {
     if (amount[0] !== "0") {
