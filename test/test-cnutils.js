@@ -554,6 +554,66 @@ export async function runCnutilsTests(log) {
     log(`varint format-before-JSBigInt check failed: ${e}`, false);
   }
 
+  // ── varint bounds: uint64 max (C++ write_varint), safe-integer numbers ────
+  try {
+    const U64_MAX = "18446744073709551615";
+    const U64_MAX_VARINT = `${"ff".repeat(9)}01`;
+    const throwsWith = (fn, message) => {
+      try {
+        fn();
+        return false;
+      } catch (e) {
+        return e instanceof Error && e.message === message;
+      }
+    };
+    const overflow = "varint value overflows uint64";
+    const unsafe =
+      "varint input exceeds Number.MAX_SAFE_INTEGER; pass it as a decimal string";
+    const safeMax = Number.MAX_SAFE_INTEGER;
+    const ok =
+      cnutils.encode_varint(U64_MAX) === U64_MAX_VARINT &&
+      cnutils.encode_varint_term(U64_MAX) === U64_MAX_VARINT &&
+      throwsWith(
+        () => cnutils.encode_varint("18446744073709551616"),
+        overflow,
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint_term("18446744073709551616"),
+        overflow,
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint("1000000000000000000000"),
+        overflow,
+      ) &&
+      throwsWith(() => cnutils.encode_varint(2 ** 53), unsafe) &&
+      throwsWith(() => cnutils.encode_varint(1e21), unsafe) &&
+      throwsWith(() => cnutils.encode_varint_term(1e21), unsafe) &&
+      throwsWith(
+        () => cnutils.derivation_to_scalar("00".repeat(32), 1e21),
+        unsafe,
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint(-1),
+        "varint cannot be negative",
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint(-1e21),
+        "varint cannot be negative",
+      ) &&
+      cnutils.encode_varint(safeMax) ===
+        cnutils.encode_varint(String(safeMax)) &&
+      cnutils.encode_varint_term(safeMax) ===
+        cnutils.encode_varint_term(String(safeMax));
+    log(
+      `encode_varint/term enforce uint64 and safe-integer bounds: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`varint bounds check failed: ${e}`, false);
+  }
+
   // ── curve (nacl.ll) vs crypto WASM ────────────────────────────────────────
   try {
     const reduced = wasmCrypto.sc_reduce32(SEED);

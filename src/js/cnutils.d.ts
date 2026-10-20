@@ -123,24 +123,29 @@ export declare function valid_hex(hex: unknown): boolean;
 export declare function ge_scalarmult_base(sec: string): string;
 /**
  * @param {string} derivation
- * @param {number} output_index
+ * @param {number | string} output_index - Varint input; see `encode_varint`.
  * @returns {string}
+ * @throws {Error} If `derivation` is not 64 chars, or `output_index` fails `encode_varint`.
  */
-export declare function derivation_to_scalar(derivation: string, output_index: number): string;
+export declare function derivation_to_scalar(derivation: string, output_index: number | string): string;
 /**
  * Encode an unsigned CryptoNote varint as lowercase hex.
  *
- * @param {number | string} i - Non-negative integer (or decimal string).
+ * @param {number | string} i - Integer in `[0, 2^64 - 1]`; pass values above
+ * `Number.MAX_SAFE_INTEGER` as decimal strings.
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, negative, an unsafe
+ * JS number, or above uint64.
  */
 export declare function encode_varint(i: number | string): string;
 /**
  * Encode an unsigned CryptoNote term varint as lowercase hex.
  *
- * @param {number | string} i - Non-negative integer (or decimal string).
+ * @param {number | string} i - Integer in `[0, 2^64 - 1]`; pass values above
+ * `Number.MAX_SAFE_INTEGER` as decimal strings.
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, negative, an unsafe
+ * JS number, or above uint64.
  */
 export declare function encode_varint_term(i: number | string): string;
 /**

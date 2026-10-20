@@ -314,8 +314,9 @@ export function ge_scalarmult_base(sec) {
 
 /**
  * @param {string} derivation
- * @param {number} output_index
+ * @param {number | string} output_index - Varint input; see `encode_varint`.
  * @returns {string}
+ * @throws {Error} If `derivation` is not 64 chars, or `output_index` fails `encode_varint`.
  */
 export function derivation_to_scalar(derivation, output_index) {
   let buf = "";
@@ -323,18 +324,19 @@ export function derivation_to_scalar(derivation, output_index) {
     throw new Error("Invalid derivation length!");
   }
   buf += derivation;
-  const enc = encode_varint(output_index);
-  if (enc.length > 10 * 2) {
-    throw new Error("output_index didn't fit in 64-bit varint");
-  }
-  buf += enc;
+  buf += encode_varint(output_index);
   return wasm_hash_to_scalar(buf);
 }
 
+const UINT64_MAX = new JSBigInt("18446744073709551615");
+
 /**
+ * Validate a varint input and return it as a `JSBigInt` in `[0, 2^64 - 1]`.
+ *
  * @param {number | string} i
  * @returns {import("./tiers/biginteger.js").JSBigInt}
- * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, negative, an unsafe
+ * JS number (above `Number.MAX_SAFE_INTEGER`), or above uint64.
  */
 function requireNonNegativeVarint(i) {
   if (i === undefined || i === null) {
@@ -344,6 +346,14 @@ function requireNonNegativeVarint(i) {
     if (!Number.isInteger(i)) {
       throw new Error("varint input must be an integer");
     }
+    if (i < 0) {
+      throw new Error("varint cannot be negative");
+    }
+    if (!Number.isSafeInteger(i)) {
+      throw new Error(
+        "varint input exceeds Number.MAX_SAFE_INTEGER; pass it as a decimal string",
+      );
+    }
   } else if (typeof i === "string") {
     if (!DECIMAL_INT_RE.test(i)) {
       throw new Error("varint input must be a non-negative integer");
@@ -352,8 +362,8 @@ function requireNonNegativeVarint(i) {
     throw new Error("varint input must be a number or decimal string");
   }
   const value = new JSBigInt(i);
-  if (value.isNegative()) {
-    throw new Error("varint cannot be negative");
+  if (value.compare(UINT64_MAX) > 0) {
+    throw new Error("varint value overflows uint64");
   }
   return value;
 }
@@ -361,9 +371,11 @@ function requireNonNegativeVarint(i) {
 /**
  * Encode an unsigned CryptoNote varint as lowercase hex.
  *
- * @param {number | string} i - Non-negative integer (or decimal string).
+ * @param {number | string} i - Integer in `[0, 2^64 - 1]`; pass values above
+ * `Number.MAX_SAFE_INTEGER` as decimal strings.
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, negative, an unsafe
+ * JS number, or above uint64.
  */
 export function encode_varint(i) {
   let j = requireNonNegativeVarint(i);
@@ -379,9 +391,11 @@ export function encode_varint(i) {
 /**
  * Encode an unsigned CryptoNote term varint as lowercase hex.
  *
- * @param {number | string} i - Non-negative integer (or decimal string).
+ * @param {number | string} i - Integer in `[0, 2^64 - 1]`; pass values above
+ * `Number.MAX_SAFE_INTEGER` as decimal strings.
  * @returns {string} Even-length lowercase hex.
- * @throws {Error} If `i` is missing, non-numeric, fractional, or negative.
+ * @throws {Error} If `i` is missing, non-numeric, fractional, negative, an unsafe
+ * JS number, or above uint64.
  */
 export function encode_varint_term(i) {
   let value = requireNonNegativeVarint(i);
