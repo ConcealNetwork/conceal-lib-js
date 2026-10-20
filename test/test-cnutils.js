@@ -136,6 +136,85 @@ export async function runCnutilsTests(log) {
 
   try {
     const ok =
+      cnutils.valid_hex("") === true &&
+      cnutils.valid_hex("ABCdef09") === true &&
+      cnutils.valid_hex(" ab") === false &&
+      cnutils.valid_hex(123) === false &&
+      cnutils.valid_hex(null) === false &&
+      cnutils.valid_hex(undefined) === false;
+    log(`valid_hex edge cases (empty/non-string): ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`valid_hex edge-case check failed: ${e}`, false);
+  }
+
+  // ── shared integer guard keeps per-function error types and messages ────
+  try {
+    const expectThrow = (fn, Type, message) => {
+      try {
+        fn();
+        return false;
+      } catch (e) {
+        return (
+          e instanceof Type &&
+          (Type !== Error || !(e instanceof TypeError)) &&
+          e.message === message
+        );
+      }
+    };
+    const ok =
+      expectThrow(
+        () => cnutils.d2h(null),
+        TypeError,
+        "d2h expects a number or decimal string",
+      ) &&
+      expectThrow(
+        () => cnutils.d2h(-1),
+        Error,
+        "d2h expects a non-negative integer",
+      ) &&
+      expectThrow(
+        () => cnutils.d2b({}),
+        TypeError,
+        "d2b expects a number or decimal string",
+      ) &&
+      expectThrow(
+        () => cnutils.d2b("2.5"),
+        Error,
+        "d2b expects a non-negative integer",
+      ) &&
+      expectThrow(
+        () => cnutils.decompose_amount_into_digits(undefined),
+        TypeError,
+        "amount must be a number or decimal string",
+      ) &&
+      expectThrow(
+        () => cnutils.decompose_amount_into_digits("-123"),
+        Error,
+        "amount must be a non-negative integer",
+      ) &&
+      expectThrow(
+        () => cnutils.h2d(1234),
+        Error,
+        "h2d expects a 16-character hex string",
+      ) &&
+      expectThrow(
+        () => cnutils.ge_neg(null),
+        Error,
+        "expected 64 char hex string",
+      ) &&
+      expectThrow(() => cnutils.hextobin(42), Error, "Invalid hex string");
+    log(
+      `shared hex/integer guards keep error types and messages: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`shared guard message check failed: ${e}`, false);
+  }
+
+  try {
+    const ok =
       cnutils.hex_xor("ff00", "0f0f") === "f00f" &&
       cnutils.hex_xor("aa", "aa") === "00";
     log(`hex_xor: ${ok ? "PASS" : "FAIL"}`, ok);
@@ -473,6 +552,66 @@ export async function runCnutilsTests(log) {
     );
   } catch (e) {
     log(`varint format-before-JSBigInt check failed: ${e}`, false);
+  }
+
+  // ── varint bounds: uint64 max (C++ write_varint), safe-integer numbers ────
+  try {
+    const U64_MAX = "18446744073709551615";
+    const U64_MAX_VARINT = `${"ff".repeat(9)}01`;
+    const throwsWith = (fn, message) => {
+      try {
+        fn();
+        return false;
+      } catch (e) {
+        return e instanceof Error && e.message === message;
+      }
+    };
+    const overflow = "varint value overflows uint64";
+    const unsafe =
+      "varint input exceeds Number.MAX_SAFE_INTEGER; pass it as a decimal string";
+    const safeMax = Number.MAX_SAFE_INTEGER;
+    const ok =
+      cnutils.encode_varint(U64_MAX) === U64_MAX_VARINT &&
+      cnutils.encode_varint_term(U64_MAX) === U64_MAX_VARINT &&
+      throwsWith(
+        () => cnutils.encode_varint("18446744073709551616"),
+        overflow,
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint_term("18446744073709551616"),
+        overflow,
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint("1000000000000000000000"),
+        overflow,
+      ) &&
+      throwsWith(() => cnutils.encode_varint(2 ** 53), unsafe) &&
+      throwsWith(() => cnutils.encode_varint(1e21), unsafe) &&
+      throwsWith(() => cnutils.encode_varint_term(1e21), unsafe) &&
+      throwsWith(
+        () => cnutils.derivation_to_scalar("00".repeat(32), 1e21),
+        unsafe,
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint(-1),
+        "varint cannot be negative",
+      ) &&
+      throwsWith(
+        () => cnutils.encode_varint(-1e21),
+        "varint cannot be negative",
+      ) &&
+      cnutils.encode_varint(safeMax) ===
+        cnutils.encode_varint(String(safeMax)) &&
+      cnutils.encode_varint_term(safeMax) ===
+        cnutils.encode_varint_term(String(safeMax));
+    log(
+      `encode_varint/term enforce uint64 and safe-integer bounds: ${
+        ok ? "PASS" : "FAIL"
+      }`,
+      ok,
+    );
+  } catch (e) {
+    log(`varint bounds check failed: ${e}`, false);
   }
 
   // ── curve (nacl.ll) vs crypto WASM ────────────────────────────────────────

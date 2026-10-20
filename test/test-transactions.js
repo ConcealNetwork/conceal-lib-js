@@ -221,6 +221,26 @@ export async function runTransactionsTests(log) {
     log(`ownsTx/ownsTxBatch mixed-key parity check failed: ${e}`, false);
   }
 
+  // ── buildReceiveOutputChecks key filter: uppercase kept, malformed skipped ──
+  try {
+    const checks = buildReceiveOutputChecks([
+      { type: "02", key: derivedKey0.toUpperCase() },
+      { type: "02", key: "zz".repeat(32) },
+      { type: "02", key: "ab".repeat(31) },
+      { type: "02", key: 123 },
+      { type: "03", keys: [derivedKey0, "zz".repeat(32), null] },
+    ]);
+    const ok =
+      checks.keys.length === 2 &&
+      checks.keys[0] === derivedKey0.toUpperCase() &&
+      checks.keys[1] === derivedKey0 &&
+      checks.indices[0] === 0 &&
+      checks.indices[1] === 4;
+    log(`buildReceiveOutputChecks key filter: ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`buildReceiveOutputChecks key filter check failed: ${e}`, false);
+  }
+
   // ── parseTxExtra flags truncated declared size instead of silent cut ─────
   try {
     const truncated = parseTxExtra([TX_EXTRA_NONCE, 5, 0x41, 0x42]);
@@ -704,6 +724,101 @@ export async function runTransactionsTests(log) {
       "serializeTransaction deposit full appends sig: " +
         (fullOk ? "PASS" : "FAIL"),
       fullOk,
+    );
+
+    // ── type-03 wire fields: required, uint32, explicit 0 allowed ──────────
+    const withVin = (patch) => ({
+      ...depositTx,
+      vin: [{ ...depositTx.vin[0], ...patch }],
+    });
+    const withVoutTerm = (term) => ({
+      ...depositTx,
+      vout: [
+        {
+          ...depositTx.vout[0],
+          target: {
+            type: "txout_to_deposit_key",
+            data: { keys: [depositKey], term },
+          },
+        },
+      ],
+    });
+    const throwsWith = (tx, message) => {
+      try {
+        serializeTransaction(tx, true);
+        return false;
+      } catch (e) {
+        return e instanceof Error && e.message === message;
+      }
+    };
+    const U32_MAX = 4294967295;
+    const U32_MAX_VARINT = "ffffffff0f";
+
+    const requiredOk =
+      throwsWith(withVin({ term: undefined }), "vin[0].term is required") &&
+      throwsWith(
+        withVin({ outputIndex: null }),
+        "vin[0].outputIndex is required",
+      ) &&
+      throwsWith(
+        withVoutTerm(undefined),
+        "vout[0].target.data.term is required",
+      );
+
+    const zeroHex = serializeTransaction(
+      {
+        ...withVoutTerm(0),
+        vin: [{ ...depositTx.vin[0], outputIndex: 0, term: 0 }],
+      },
+      true,
+    );
+    const zr = makeHexReader(zeroHex);
+    zr.readVarint(); // version
+    zr.readVarint(); // unlock_time
+    zr.readVarint(); // vin count
+    zr.readHex(1); // "03"
+    zr.readVarint(); // amount
+    zr.readVarint(); // signature count
+    const zeroOutIdx = zr.readVarint();
+    const zeroVinTerm = zr.readVarint();
+    zr.readVarint(); // vout count
+    zr.readVarint(); // amount
+    zr.readHex(1); // "03"
+    zr.readVarint(); // keys length
+    zr.readHex(32); // key
+    zr.readVarint(); // required signature count
+    const zeroVoutTerm = zr.readVarint();
+    const zeroOk = zeroOutIdx === 0 && zeroVinTerm === 0 && zeroVoutTerm === 0;
+
+    const maxHex = serializeTransaction(
+      {
+        ...withVoutTerm(String(U32_MAX)),
+        vin: [{ ...depositTx.vin[0], outputIndex: U32_MAX, term: U32_MAX }],
+      },
+      true,
+    );
+    const maxOk =
+      maxHex.split(U32_MAX_VARINT).length - 1 === 3 &&
+      throwsWith(
+        withVin({ term: U32_MAX + 1 }),
+        "vin[0].term overflows uint32",
+      ) &&
+      throwsWith(
+        withVin({ outputIndex: U32_MAX + 1 }),
+        "vin[0].outputIndex overflows uint32",
+      ) &&
+      throwsWith(
+        withVoutTerm("4294967296"),
+        "vout[0].target.data.term overflows uint32",
+      ) &&
+      throwsWith(withVin({ term: -1 }), "varint cannot be negative");
+
+    const wireOk = requiredOk && zeroOk && maxOk;
+    log(
+      `serializeTransaction type-03 term/outputIndex required, uint32, 0 allowed: ${
+        wireOk ? "PASS" : "FAIL"
+      }`,
+      wireOk,
     );
   } catch (e) {
     log(`serializeTransaction deposit path failed: ${e}`, false);
