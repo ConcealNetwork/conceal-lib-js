@@ -419,8 +419,8 @@ export function ownsTxBatch(txs, ctx) {
  * @property {number | string} [amount] - Input amount (uint64; pass large values as strings).
  * @property {number[]} [key_offsets] - Relative ring offsets (`input_to_key`).
  * @property {string} [k_image] - 64-char hex key image (`input_to_key`).
- * @property {number | string} [outputIndex] - Deposit output index (`input_to_deposit_key`).
- * @property {number | string} [term] - Deposit term in blocks (`input_to_deposit_key`).
+ * @property {number | string} [outputIndex] - Global output index (uint32); required for `input_to_deposit_key`.
+ * @property {number | string} [term] - Term in blocks (uint32; `0` = plain multisig); required for `input_to_deposit_key`.
  * @property {number} [signatures] - Expected signature count for `input_to_deposit_key`.
  */
 
@@ -428,7 +428,7 @@ export function ownsTxBatch(txs, ctx) {
  * @typedef {Object} TxSerializeVoutTargetData
  * @property {string} [key] - 64-char hex output public key (`txout_to_key`).
  * @property {string[]} [keys] - 64-char hex output keys (`txout_to_deposit_key`).
- * @property {number | string} [term] - Deposit term in blocks (`txout_to_deposit_key`).
+ * @property {number | string} [term] - Term in blocks (uint32; `0` = plain multisig); required for `txout_to_deposit_key`.
  */
 
 /**
@@ -480,6 +480,29 @@ function assertHexLen(hex, length, label) {
   }
 }
 
+const UINT32_MAX = 0xffffffffn;
+
+/**
+ * Encode a required `uint32_t` wire field (C++ `MultisignatureInput` /
+ * `MultisignatureOutput` `outputIndex` and `term`). `0` is a valid value.
+ *
+ * @param {number | string | null | undefined} value
+ * @param {string} field - Field path used in error messages, e.g. `vin[0].term`.
+ * @param {(i: number | string) => string} encode - `encode_varint` or `encode_varint_term`.
+ * @returns {string} Varint hex.
+ * @throws {Error} If `value` is missing, fails varint validation, or exceeds uint32.
+ */
+function encodeRequiredUint32(value, field, encode) {
+  if (value === undefined || value === null) {
+    throw new Error(`${field} is required`);
+  }
+  const hex = encode(value);
+  if (BigInt(value) > UINT32_MAX) {
+    throw new Error(`${field} overflows uint32`);
+  }
+  return hex;
+}
+
 /**
  * Serialize a CryptoNote transaction to broadcast-ready hex (non-RingCT / plain
  * ring-signature path only). Ported byte-for-byte from `CnTransactions.serialize_tx`
@@ -518,8 +541,12 @@ export function serializeTransaction(tx, headerOnly = false) {
         buf += "03";
         buf += encode_varint(vin.amount);
         buf += encode_varint(1); // always 1 for deposits/withdrawals
-        buf += encode_varint(vin.outputIndex || 0);
-        buf += encode_varint(vin.term || 0);
+        buf += encodeRequiredUint32(
+          vin.outputIndex,
+          `vin[${i}].outputIndex`,
+          encode_varint,
+        );
+        buf += encodeRequiredUint32(vin.term, `vin[${i}].term`, encode_varint);
         break;
       }
       default:
@@ -555,7 +582,11 @@ export function serializeTransaction(tx, headerOnly = false) {
           buf += keys[j];
         }
         buf += encode_varint(1); // requiredSignatureCount is always 1 for deposits
-        buf += encode_varint_term(vout.target.data.term || 0); // term in blocks
+        buf += encodeRequiredUint32(
+          vout.target.data.term,
+          `vout[${i}].target.data.term`,
+          encode_varint_term,
+        );
         break;
       }
       default:

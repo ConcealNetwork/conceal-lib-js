@@ -216,11 +216,11 @@ export type TxSerializeVinTarget = {
      */
     k_image?: string;
     /**
-     * - Deposit output index (`input_to_deposit_key`).
+     * - Global output index (uint32); required for `input_to_deposit_key`.
      */
     outputIndex?: number | string;
     /**
-     * - Deposit term in blocks (`input_to_deposit_key`).
+     * - Term in blocks (uint32; `0` = plain multisig); required for `input_to_deposit_key`.
      */
     term?: number | string;
     /**
@@ -238,7 +238,7 @@ export type TxSerializeVoutTargetData = {
      */
     keys?: string[];
     /**
-     * - Deposit term in blocks (`txout_to_deposit_key`).
+     * - Term in blocks (uint32; `0` = plain multisig); required for `txout_to_deposit_key`.
      */
     term?: number | string;
 };
