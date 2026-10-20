@@ -39,6 +39,34 @@ export async function runMnemonicTests(log) {
     log(`mn_random(100) correctly rejected: ${e}`, true);
   }
 
+  // ── mn_random rejects non-positive, non-integer and oversized bits ───────
+  try {
+    const invalid = [-32, 0, -0, null, "256", 1.5, 2 ** 20, Number.NaN];
+    const rejected = invalid.every((bits) => {
+      try {
+        mn_random(bits);
+        return false;
+      } catch (e) {
+        return (
+          e instanceof Error &&
+          e.message.startsWith(
+            "Something weird went wrong: Invalid number of bits - ",
+          )
+        );
+      }
+    });
+    const small = mn_random(32);
+    const max = mn_random(65536 * 8);
+    const ok =
+      rejected &&
+      typeof small === "string" &&
+      /^[0-9a-f]{8}$/.test(small) &&
+      max.length === 65536 * 2;
+    log(`mn_random bits guard (sign/type/size): ${ok ? "PASS" : "FAIL"}`, ok);
+  } catch (e) {
+    log(`mn_random bits guard check failed: ${e}`, false);
+  }
+
   // ── Test 3: mn_encode on a known key (default / explicit "english") ──────
   const hexKey =
     "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";

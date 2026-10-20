@@ -95,6 +95,8 @@ var crc32 = (() => {
 
 var mn_default_wordset = "english";
 
+const MN_RANDOM_MAX_BITS = 65536 * 8;
+
 /**
  * Resolve a mnemonic word to its list index.
  * Full-word match first (export phrases use full words), then prefix match.
@@ -253,13 +255,20 @@ function mn_decode(str, wordset_name) {
  * before using it as a private key.
  *
  * @param {number} bits - Number of random bits to generate.  Must be a
- *   positive multiple of 32; typically `256` for a 32-byte seed.
+ *   positive integer multiple of 32, at most 524288 (the Web Crypto
+ *   `getRandomValues` 65536-byte limit); typically `256` for a 32-byte seed.
  * @returns {string} Lowercase hex string of length `bits / 4`.
- * @throws {Error} If `bits` is not a multiple of 32, or if the environment
- *   does not support the Web Crypto API, or if random generation fails.
+ * @throws {Error} If `bits` is not a positive integer multiple of 32 up to
+ *   524288, or if the environment does not support the Web Crypto API, or if
+ *   random generation fails.
  */
 function mn_random(bits) {
-  if (bits % 32 !== 0)
+  if (
+    !Number.isInteger(bits) ||
+    bits <= 0 ||
+    bits > MN_RANDOM_MAX_BITS ||
+    bits % 32 !== 0
+  )
     throw new Error(
       `Something weird went wrong: Invalid number of bits - ${bits}`,
     );

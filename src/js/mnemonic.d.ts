@@ -51,10 +51,12 @@ declare function mn_decode(str: string, wordset_name?: 'english' | 'spanish' | '
  * before using it as a private key.
  *
  * @param {number} bits - Number of random bits to generate.  Must be a
- *   positive multiple of 32; typically `256` for a 32-byte seed.
+ *   positive integer multiple of 32, at most 524288 (the Web Crypto
+ *   `getRandomValues` 65536-byte limit); typically `256` for a 32-byte seed.
  * @returns {string} Lowercase hex string of length `bits / 4`.
- * @throws {Error} If `bits` is not a multiple of 32, or if the environment
- *   does not support the Web Crypto API, or if random generation fails.
+ * @throws {Error} If `bits` is not a positive integer multiple of 32 up to
+ *   524288, or if the environment does not support the Web Crypto API, or if
+ *   random generation fails.
  */
 declare function mn_random(bits: number): string;
 export { mn_decode, mn_encode, mn_random };
