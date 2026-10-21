@@ -55,6 +55,6 @@ Before any version bump, PR, or release:
 3. The PR review comments must surface any leftover discussions, issues, or unmerged PRs, so the maintainer merges with full situational awareness.
 4. After the release, delete merged or superseded branches so the open-branch list reflects reality.
 
-Dependency-chain order: `conceal-lib-js` → `conceal-wallet-sdk` → `conceal-wallet-sdk` → `conceal-next-wallet`. Downstream work assumes the upstream step is clean; do not start downstream work while a completed upstream fix is unmerged (emergencies excepted).
+Dependency-chain order: `conceal-lib-js` → `conceal-wallet-sdk` → `conceal-next-wallet`. Downstream work assumes the upstream step is clean; do not start downstream work while a completed upstream fix is unmerged (emergencies excepted).
 
 Precedent: `fix/lowercase-key-images` in `conceal-wallet-sdk` (completed 2026-08-10) sat unmerged for two months while SDK 0.3.3/0.3.4 shipped, and was only resurfaced by a later repo scan. Do not repeat this.
