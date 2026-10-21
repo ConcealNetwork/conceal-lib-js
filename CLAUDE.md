@@ -42,3 +42,19 @@ When adding or changing behavior covered by a suite, update the suite once — b
   4. **If breaking changes are introduced:** try a PR with the updated `$schema` **and** adapt `biome.json` config keys to the new schema (rename/migrate/remove deprecated fields — run `biome migrate` if available, then hand-verify). Land both the schema URL and the config adaptation in one change.
   5. **If Biome still emits errors after adaptation** (lint/check/types fail on config the new Biome can't reconcile): consider **downgrading `@biomejs/biome` back** to the prior working version and **stop for admin review** — surface the exact errors, the version pair, and the unresolvable config conflict. Do not force a broken upgrade through.
   6. Always run `npm run lint` after the schema edit to confirm the diagnostic clears and nothing regressed.
+
+
+## Release discipline — no work left behind
+
+Workflow: unless it is an emergency fix, all fixes, features, and dependency updates are worked on and pushed to the `development` branch of this repository. After local testing, the version is bumped and a PR is opened, which triggers the CI gate test series and an assistant review.
+
+Before any version bump, PR, or release:
+
+1. List all remote branches and identify unmerged `fix/*` / `feature/*` work that is **not** on `main`/`development`.
+2. For each, decide explicitly: land it in this release, or record why it is deferred (issue or tracking note). A known-completed fix must never sit unmerged across a release.
+3. The PR review comments must surface any leftover discussions, issues, or unmerged PRs, so the maintainer merges with full situational awareness.
+4. After the release, delete merged or superseded branches so the open-branch list reflects reality.
+
+Dependency-chain order: `conceal-lib-js` → `conceal-wallet-sdk` → `conceal-wallet-sdk` → `conceal-next-wallet`. Downstream work assumes the upstream step is clean; do not start downstream work while a completed upstream fix is unmerged (emergencies excepted).
+
+Precedent: `fix/lowercase-key-images` in `conceal-wallet-sdk` (completed 2026-08-10) sat unmerged for two months while SDK 0.3.3/0.3.4 shipped, and was only resurfaced by a later repo scan. Do not repeat this.
